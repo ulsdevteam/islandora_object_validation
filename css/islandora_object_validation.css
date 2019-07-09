@@ -1,0 +1,66 @@
+.centered {
+    text-align: center;
+}
+
+.fineprint {
+    font-size: 8pt;
+}
+
+.model_label {
+    min-width: 330px;
+}
+
+.item_optional {
+    color: #777;
+}
+
+.item_na {
+   color: #aaa;
+}
+
+.model_label label {
+    font-weight: bold;
+}
+
+.model_label .pid {
+    color: #888;
+    font-size: smaller;
+}
+
+.selected_link {
+    font-weight: bold;
+}
+
+.selected_link span {
+    font-weight: normal;
+    color: #666;
+}
+
+.link_open_new_tab_tiny, .link_open_new_tab {
+    line-height: 0.95em;
+    padding-bottom: 0.2em;
+}
+
+.link_open_new_tab_tiny {
+    padding-right: 16px;
+    background: url("../images/open-new-tab_12.png") top right no-repeat !important;
+}
+
+.link_open_new_tab {
+    padding-right: 20px;
+    background: url("../images/open-new-tab_16.png") top right no-repeat !important;
+}
+
+.req input[type=checkbox] .required {
+  outline:2px dotted #faa;
+}
+
+.round_fieldset {
+    max-width: 100%;
+    border-radius: 8px;
+    padding: 0 10px 10px 10px;
+    border: 1px solid #888;
+    background-color: #f6f6f6;
+    box-shadow: 3px 3px 6px #666;
+    margin-bottom: 1em;
+}

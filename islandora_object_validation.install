@@ -1,0 +1,112 @@
+<?php
+
+/**
+ * @file
+ * Install/uninstall hooks.
+ */
+
+/**
+ * Implements hook_uninstall().
+ */
+function islandora_object_validation_install() {
+  // Need to install the forena reports files
+  module_load_include('inc', 'islandora_object_validation', 'includes/utilities');
+  islandora_object_validation_check_and_deploy_forena_reports();
+}
+
+/**
+ * Implements hook_uninstall().
+ */
+function islandora_object_validation_uninstall() {
+  // Remove any variables.
+  variable_del('islandora_object_validation_selected_cmodels');
+}
+
+/**
+ * Implements hook_enable().
+ *
+ * Since Drupal module schema code makes it impossible to set up a timestamp
+ * field that updates with CURRENT_TIMESTAMP, this must be done during the
+ * module_hook_enable.
+ */
+function islandora_object_validation_enable() {
+  db_query("ALTER TABLE `islandora_object_validation_history` CHANGE COLUMN " .
+    "`validation_time` `validation_time` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP " .
+    "ON UPDATE CURRENT_TIMESTAMP");
+  db_query("ALTER TABLE `islandora_object_validation_queue` CHANGE COLUMN " .
+    "`queued_timestamp` `queued_timestamp` TIMESTAMP NULL");
+}
+
+/**
+* Implementation of hook_schema().
+*/
+function islandora_object_validation_schema() {
+  // Create the database tables needed for the module.
+  $schema['islandora_object_validation_history'] = array(
+    'description' => t('Stores the results for all validation on islandora objects.'),
+    'fields' => array(
+      'id' => array(
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'islandora_pid' => array(
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+      ),
+      'validation_result' => array(
+        'type' => 'int',
+        'size' => 'tiny',
+        'default' => 0,
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'check_datastreams' => array(
+        'type' => 'varchar',
+        'length' => 150,
+        'not null' => TRUE,
+      ),
+      'missing_datastreams' => array(
+        'type' => 'varchar',
+        'length' => 150,
+        'not null' => TRUE,
+      ),
+      'validation_time' => array(
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+    ),
+    'unique keys' => array(
+      'u_batch_id_identifier' => array('islandora_pid', 'validation_time'),
+    ),
+    'primary key' => array('id'),
+  );
+  $schema['islandora_object_validation_queue'] = array(
+    'description' => t('A queue for validation of islandora objects during the ' .
+        'CRON process (if configured).  Records are deleted at the time of validation.'),
+    'fields' => array(
+      'id' => array(
+        'description' => t('The primary identifier for the record'),
+        'type' => 'serial',
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
+      'islandora_PID' => array(
+        'type' => 'varchar',
+        'length' => 64,
+        'not null' => TRUE,
+      ),
+      'queued_timestamp' => array(
+        'type' => 'int',
+        'not null' => FALSE,
+      ),
+    ),
+    'indexes' => array(
+      'ss_queued_timestamp' => array('queued_timestamp'),
+    ),
+    'primary key' => array('id'),
+  );
+
+  return $schema;
+}

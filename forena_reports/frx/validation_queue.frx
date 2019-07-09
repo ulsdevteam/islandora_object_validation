@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE root [
+<!ENTITY nbsp "&#160;">
+]>
+<html xmlns:frx="urn:FrxReports">
+<head>
+<title>Objects Queued for Validation</title>
+<frx:category>Islandora Object Validation</frx:category>
+<frx:options input_format="full_html" skin="default_skin"/>
+<frx:parameters>
+</frx:parameters>
+<frx:docgen>
+  <frx:doc type="csv"/>
+</frx:docgen>
+<frx:fields>
+  <frx:field id="islandora_PID" />
+  <frx:field id="queued_timestamp" />
+</frx:fields>
+<frx:menu/>
+<frx:cache/>
+<style/>
+<frx:description/><meta content="Display the objects that are queued for validation." name="description"/></head>
+<body><div class="FrxTable" frx:block="islandora_object_validation_sql/validation_queue" id="validation_queue_block">
+	<table class="report_table">
+                <caption>
+                        Objects Queued for Validation</caption>
+                <thead>
+                        <tr>
+                                <th>
+                                        Islandora PID</th>
+                                <th>
+                                        Queued</th>
+                        </tr>
+                </thead>
+                <tbody>
+                        <tr frx:foreach="*" id="validation_queue">
+                                <td>
+                                        {islandora_PID}</td>
+                                <td>
+                                        {queued_timestamp}</td>
+                        </tr>
+                </tbody>
+        </table>
+</div>
+</body>
+</html>

@@ -1,0 +1,229 @@
+<?php
+
+/**
+ * @file
+ * Allows validation of Islandora objects by checking for the existence of
+ * the configured datastreams for each object model.
+ *
+ */
+
+/**
+ * Implements hook_menu().
+ */
+function islandora_object_validation_menu() {
+  $items = array(
+    'admin/islandora/tools/islandora_object_validation' => array(
+      'title' => t('Islandora Object Validation'),
+      'description' => t('Configure settings for the Islandora Object Validation module.'),
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('islandora_object_validation_admin_settings'),
+      'access arguments' => array('administer islandora_object_validation'),
+      'file' => 'includes/admin.form.inc',
+    ),
+    'admin/islandora/tools/islandora_object_validation/reports/%' => array(
+      'title' => t('Validation Failures'),
+      'description' => t('Reports for the Islandora Object Validation module.'),
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('islandora_object_validation_reports', 5),
+      'access arguments' => array('administer islandora_object_validation'),
+      'file' => 'includes/reports.form.inc',
+      'type' => MENU_CALLBACK,
+    ),
+    'admin/islandora/tools/islandora_object_validation/validate_objects' => array(
+      'title' => t('Validation Failures'),
+      'description' => t('Reports for the Islandora Object Validation module.'),
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('islandora_object_validation_validate_objects'),
+      'access arguments' => array('administer islandora_object_validation'),
+      'file' => 'includes/validate_objects.form.inc',
+      'type' => MENU_CALLBACK,
+    ),
+  );
+  return $items;
+}
+
+/**
+ * Implements hook_permission().
+ */
+function islandora_object_validation_permission() {
+  return array(
+    'administer islandora_object_validation' => array(
+      'title' => t('Administer Islandora Object Validation'),
+      'description' => t('Configure the required datastreams for all object models and what to do with the failed objects.'),
+    ),
+  );
+}
+
+/**
+ * Implements hook_presprocess_theme().
+ *
+ * This code will add the javascript if on a islandora_object_validation
+ * page.
+ */
+function islandora_object_validation_preprocess_page(&$vars) {
+  $item = menu_get_item();
+  if (is_array($item)) {
+    if ($item['path'] == 'admin/islandora/tools/islandora_object_validation' ||
+      $item['path'] == 'admin/islandora/tools/islandora_object_validation/reports/%') {
+      $module_path = drupal_get_path('module', 'islandora_object_validation');
+      drupal_add_css($module_path . '/css/islandora_object_validation.css');
+    }
+  }
+}
+
+/**
+ * Implements hook_islandora_object_ingested().
+ */
+function islandora_object_validation_islandora_object_ingested($object) {
+  // Perform the validation check on this object.
+  if (is_object($object)) {
+    module_load_include('inc', 'islandora_object_validation', 'includes/db');
+    $object_models = $object->models;
+    $check_dsids = array();
+    $validation_datastreams = variable_get('islandora_object_validation_selected_cmodels', array());
+    dpm($validation_datastreams);
+    dpm($object_models);
+    foreach ($object_models as $object_model) {
+      $lc_name = str_replace("islandora:", "", strtolower($object_model));
+      if (strstr($object_model, 'fedora-system:') == '' && $lc_name) {
+        $lc_name = str_replace("islandora:", "", strtolower($object_model));
+        foreach ($validation_datastreams as $key => $validation_datastream) {
+          if (strstr($key, $lc_name) <> '') {
+            $dsid = str_replace($lc_name . '_', "", $key);
+            $check_dsids[$dsid] = $dsid;
+          }
+        }
+      }
+    }
+    $successes = $failures = array();
+    // Need to check these datastreams for validity.
+    foreach ($object as $dsid => $fedoraDatastream) {
+      if (!(array_search($dsid, $check_dsids) === FALSE)) {
+        try {
+          $model_has_datastream = $object[$dsid]; // ->content;
+        }
+        catch (Exception $exception) {
+          $model_has_datastream = '';
+        }
+        if ($model_has_datastream) {
+          $successes[$dsid] = $dsid;
+        }
+        else {
+          $failures[$dsid] = $dsid;
+        }
+      }
+    }
+    islandora_object_validation_object_add_record($object, $check_dsids, $failures);
+  }
+}
+
+function islandora_object_validation_get_validations_table($cmodels) {
+  $dsids = array();
+  $reqs = array();
+  $already_chosen = variable_get('islandora_object_validation_selected_cmodels', array());
+  foreach($cmodels as $key => $pid_label) {
+    $pid = $pid_label['pid'];
+    $name = $pid_label['label'];
+    $req = islandora_object_validation_object_model_datastream_requirements($pid);
+    $reqs[$pid] = $req;
+
+    $all = (array_key_exists('required', $req) || array_key_exists('optional', $req)) ?
+        array_merge($req['required'], $req['optional']) : array();
+    foreach ($all as $dsid => $ds_req) {
+      $dsids[$dsid] = $dsid;
+    }
+  }
+  ksort($dsids);
+  $rows = array();
+  foreach($cmodels as $key => $pid_label) {
+    $pid = $pid_label['pid'];
+    $name = $pid_label['label'];
+    $req = $reqs[$pid];
+    $row = array();
+    // Model
+    $row[] = '<div class="model_label"><label>' . $name . '</label>' .
+        '<span class="pid">' . l($pid, 'islandora/object/'. $pid) . '</span></div>';
+    foreach ($dsids as $dsid) {
+      $use_name = str_replace('islandora:', "", strtolower($pid));
+      $cbx_name = $use_name . '_' . $dsid;
+      $cbx_val = array_key_exists($cbx_name, $already_chosen) ? ' checked' : '';
+      $req_class = (array_key_exists('required', $req) && array_key_exists($dsid, $req['required'])) ? ' req' : '';
+      $checkbox = ((array_key_exists('required', $req) && array_key_exists($dsid, $req['required']) ||
+          (array_key_exists('optional', $req) && array_key_exists($dsid, $req['optional'])))  ?
+          '<input type="checkbox"' . $cbx_val . ' name="' . $cbx_name . '" id="' . $cbx_name . '">' :
+          '<input type="checkbox"' . $cbx_val . ' disabled name="' . $cbx_name . '" id="' . $cbx_name . '">');
+      $row[] = '<div class="centered' . $req_class . ' fineprint">' .
+              $checkbox . '<br>' . (array_key_exists('required', $req) && array_key_exists($dsid, $req['required']) ? '&nbsp;' :
+          (array_key_exists('optional', $req) && array_key_exists($dsid, $req['optional']) ? '<span class="item_optional">optional</span>' : '<span class="item_na">N/A</span>')) .
+          '</div>';
+    }
+    $rows[] = $row;
+  }
+  $headers = array_keys(array_merge(array('Model' => 'Model'), $dsids));
+  return theme('table', array('header' => $headers, 'rows' => $rows));
+}
+
+/**
+ * Inspect the datastream requirements for a given model PID.
+ *
+ * This will return an array of optional and required datastreams.
+ *
+ * @param string $model_pid
+ *   Fedora content model PID
+ * @return array
+ *   Array of required / optional dasastreams for model_requirements
+ */
+function islandora_object_validation_object_model_datastream_requirements($model_pid) {
+  module_load_include('inc', 'islandora', 'includes/utilities');
+  $model = @islandora_object_load($model_pid);
+  // Only can proceed if the islandora model here has the DS-COMPOSITE-MODEL.
+  $model_requirements = array();
+  $model_has_content = '';
+  try {
+    $model_dsids = array();
+    $had_DS_COMPOSIT = FALSE;
+    foreach ($model as $dsid => $fedoraDatastream) {
+      $had_DS_COMPOSIT |= ($dsid == ISLANDORA_DS_COMP_STREAM);
+    }
+    if ($had_DS_COMPOSIT) {
+      $model_has_content = $model[ISLANDORA_DS_COMP_STREAM]->content;
+    }
+  }
+  catch (Exception $exception) {
+    // Some islandora model objects do not have the DS-COMPOSITE-MODEL
+  }
+  if (isset($model) && is_object($model) && $model_has_content) {
+    $ds_reqs = islandora_get_datastreams_requirements_from_content_model($model);
+    if (array_key_exists('RELS-EXT', $ds_reqs)) {
+      if (array_key_exists('RELS-EXT', $ds_reqs) && $ds_reqs['RELS-EXT']['optional']) {
+        $ds_reqs['RELS-EXT']['optional'] = FALSE;
+      }
+      if (array_key_exists('TN', $ds_reqs) && $ds_reqs['TN']['optional']) {
+        $ds_reqs['TN']['optional'] = FALSE;
+      }
+    }
+    // We want to override the value for RELS-INT here - it's required.
+    if (is_array($ds_reqs)) {
+      $model_requirements = $ds_reqs;
+    }
+  }
+  // RELS-EXT
+  // Structure the return array to have two subarrays -- one with "required"
+  // datastreams and another with "optional" datastreams.
+  $return_array = array();
+  foreach ($model_requirements as $dsid => $model_requirement) {
+    if ($model_requirement['optional'] == FALSE) {
+      $return_array['required'][$dsid] = array(
+          'id' => $model_requirement['id'],
+          'mime' => $model_requirement['mime'],
+      );
+    }
+    else {
+      $return_array['optional'][$dsid] = array(
+          'id' => $model_requirement['id'],
+          'mime' => $model_requirement['mime'],
+      );
+    }
+  }
+  return $return_array;
+}
