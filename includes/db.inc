@@ -6,9 +6,6 @@
  */
 
 function islandora_object_validation_object_add_record($object, $check_dsids, $failures) {
-  dpm($object->id);
-  dpm($check_dsids);
-  return;
   $validation_result = (count($failures) > 0) ? 0 : 1;
   $check_datastreams = implode(",", $check_dsids);
   $missing_datastreams = implode(",", $failures);

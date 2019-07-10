@@ -20,15 +20,6 @@ function islandora_object_validation_menu() {
       'access arguments' => array('administer islandora_object_validation'),
       'file' => 'includes/admin.form.inc',
     ),
-    'admin/islandora/tools/islandora_object_validation/reports/%' => array(
-      'title' => t('Validation Failures'),
-      'description' => t('Reports for the Islandora Object Validation module.'),
-      'page callback' => 'drupal_get_form',
-      'page arguments' => array('islandora_object_validation_reports', 5),
-      'access arguments' => array('administer islandora_object_validation'),
-      'file' => 'includes/reports.form.inc',
-      'type' => MENU_CALLBACK,
-    ),
     'admin/islandora/tools/islandora_object_validation/validate_objects' => array(
       'title' => t('Validation Failures'),
       'description' => t('Reports for the Islandora Object Validation module.'),
@@ -75,14 +66,12 @@ function islandora_object_validation_preprocess_page(&$vars) {
  * Implements hook_islandora_object_ingested().
  */
 function islandora_object_validation_islandora_object_ingested($object) {
-  // Perform the validation check on this object.
-  if (is_object($object)) {
+  // Perform the validation check on this object only if this is configured to happen.
+  if (variable_get('islandora_object_validation_validate_on_ingest', 0) && is_object($object)) {
     module_load_include('inc', 'islandora_object_validation', 'includes/db');
     $object_models = $object->models;
     $check_dsids = array();
     $validation_datastreams = variable_get('islandora_object_validation_selected_cmodels', array());
-    dpm($validation_datastreams);
-    dpm($object_models);
     foreach ($object_models as $object_model) {
       $lc_name = str_replace("islandora:", "", strtolower($object_model));
       if (strstr($object_model, 'fedora-system:') == '' && $lc_name) {
@@ -95,12 +84,14 @@ function islandora_object_validation_islandora_object_ingested($object) {
         }
       }
     }
-    $successes = $failures = array();
+    $good_dsids = $successes = $failures = array();
     // Need to check these datastreams for validity.
     foreach ($object as $dsid => $fedoraDatastream) {
       if (!(array_search($dsid, $check_dsids) === FALSE)) {
+        $model_has_datastream = FALSE;
         try {
           $model_has_datastream = $object[$dsid]; // ->content;
+          $good_dsids[$dsid] = $dsid;
         }
         catch (Exception $exception) {
           $model_has_datastream = '';
@@ -111,6 +102,11 @@ function islandora_object_validation_islandora_object_ingested($object) {
         else {
           $failures[$dsid] = $dsid;
         }
+      }
+    }
+    foreach ($check_dsids as $dsid) {
+      if (array_key_exists($dsid, $good_dsids) === FALSE) {
+        $failures[$dsid] = $dsid;
       }
     }
     islandora_object_validation_object_add_record($object, $check_dsids, $failures);
@@ -161,6 +157,33 @@ function islandora_object_validation_get_validations_table($cmodels) {
   }
   $headers = array_keys(array_merge(array('Model' => 'Model'), $dsids));
   return theme('table', array('header' => $headers, 'rows' => $rows));
+}
+
+
+/**
+ * Helper function to retrieve the Forena reports in the "Islandora Object
+ * Validation" category
+ *
+ * NOTE: This will not return any reports that have their "Hidden" property set
+ * to TRUE within their General settings page.
+ *
+ * @return string
+ *   Markup for the links to each of the found forena reports.
+ */
+function islandora_object_validation_strap_report_reports() {
+  module_load_include('inc', 'forena', 'forena.common');
+  $category = 'Islandora Object Validation';
+  $reports = forena_get_user_reports($category);
+  $report_repos = variable_get('forena_path', 'reports');
+  $output = (!$reports) ? 'No Reports Found' : t('View results of object validation testing.') . "<br>";
+  foreach ($reports as $category => $reports) {
+    foreach ($reports as $r) {
+      $output .= l($r['title'], $report_repos . '/' . str_replace('/', '.', $r['report_name'])) .
+              ((isset($r['description']) && $r['description']) ? '<br><span class="small_lt_text"> - ' . $r['description'] . '<br></span>': '') . "<br>";
+    }
+  }
+
+  return $output;
 }
 
 /**

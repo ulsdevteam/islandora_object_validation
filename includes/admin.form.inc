@@ -39,26 +39,31 @@ function islandora_object_validation_admin_settings(array $form, array &$form_st
   );
   drupal_set_breadcrumb($breadcrumb);
 
+  $report_links = islandora_object_validation_strap_report_reports();
+
   $form = array(
     'reports_wrapper' => array(
       '#type' => 'fieldset',
+      '#title' => t('Reports'),
       '#attributes' => array(
         'class' => array('round_fieldset'),
       ),
-      'link_report' => array(
+      'report_links' => array(
         '#type' => 'item',
-        '#title' => t('View results of object validation testing'),
-        '#markup' => '<ul><li>' . l(t('Validation Failures'), 'admin/islandora/tools/islandora_object_validation/reports/failures') .
-          ' <span>- lists only the objects that fail the validation checking for that type of object</span></li>' .
-          '<li>' . l(t('All records'), 'admin/islandora/tools/islandora_object_validation/reports/all') .
-          ' <span>- lists all validation results.</span></li></ul>',
+        '#markup' => '<ul><li>' . $report_links . '</li></ul>',
+      ),
+    ),
+    'utility_wrapper' => array(
+      '#type' => 'fieldset',
+      '#title' => t('Validate objects'),
+      '#attributes' => array(
+        'class' => array('round_fieldset'),
       ),
       'link_validations' => array(
         '#type' => 'item',
-        '#title' => t('Validate objects'),
         '#markup' => '<ul><li>' .
           l(t('Validate Objects'), 'admin/islandora/tools/islandora_object_validation/validate_objects') .
-          ' <span>- validate objects now</span></li></ul>',
+          ' <span>- validate specific objects now.</span></li></ul>',
       ),
     ),
     'validate_objects_wrapper' => array(
@@ -66,7 +71,7 @@ function islandora_object_validation_admin_settings(array $form, array &$form_st
       '#attributes' => array(
         'class' => array('round_fieldset'),
       ),
-      '#title' => t('Validate objects'),
+      '#title' => t('Automatically validate objects?'),
       '#description' => t('View results of object validation testing.'),
       'validate_on_ingest' => array(
         '#type' => 'checkbox',

@@ -17,6 +17,9 @@ Installing this module will also set up the following:
  - create the tables: islandora_object_validation_history, islandora_object_validation_queue
  - Deploy the Forena reports SQL and FRX files to the configured Forena locations.  This requires that the Drupal "**Private file system path**" is configured and editable by the web server (this path is configured at /admin/config/media/file-system).
 
+## Permissions
+Since this module uses the Forena reporting system, any users of this module should also have the separate permissions "Access Islandora Object Validation Reports Data" and "List reports" for the Forena reports.
+
 ## Configuration
 
 Configure the datastreams that are required for validation for all object types at Administration » Islandora » Islandora Object Validation (admin/islandora/tools/islandora_object_validation). 

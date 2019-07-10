@@ -4,19 +4,20 @@
 ]>
 <html xmlns:frx="urn:FrxReports">
 <head>
-<title>Batch Completedness</title>
-<meta content="This will list all batches that still require human actions." name="description"/>
+<title>Islandora Object Validation Report</title>
+<meta content="This will list all validation results." name="description"/>
 <frx:category>Islandora Object Validation</frx:category>
 <frx:options/>
 <frx:parameters>
+  <frx:parm id="PID" label="Islandora PID" data_source="islandora_object_validation_sql/validation_report" data_field="islandora_PID"/>
+  <frx:parm id="dsid" label="Check datastreams" data_source="islandora_object_validation_sql/validation_report" data_field="check_datastreams"/>
+  <frx:parm id="SHOW_ALL" label="Show all records (shows PASS and FAIL)?" data_source="islandora_object_validation_sql/validation_report" data_field="validation_result" type="checkbox" />
+<!--  <frx:parm id="DATE_START" label="Starting Date Range?" data_source="islandora_object_validation_sql/validation_report" data_field="validation_time" format="drupal_date_format" type="unixtime"/> -->
 </frx:parameters>
 <frx:docgen>
 </frx:docgen>
 <frx:fields>
-
-  <frx:field id="batch_name" link="node/{nid}"/>
-
-  <frx:field id="required action_id" link="node/{nid}/items"/>
+  <frx:field id="islandora_PID" link="islandora/object/{islandora_PID}"/>
 </frx:fields>
 <frx:menu/>
 <frx:cache/>
@@ -27,12 +28,16 @@
     <table>
       <thead>
         <tr>
-          <th>Missing Action(s)</th>
-          <th>Batch</th>
-          <th>Sequence Name</th></tr></thead>
+          <th>Islandora PID</th>
+          <th>Validation Result</th>
+          <th>check datastreams</th>
+          <th>missing datastreams</th>
+          <th>validation time</th></tr></thead>
       <tbody>
         <tr id="batch_completedness" frx:foreach="*">
-          <td>{required action_id}</td>
-          <td>{batch_name}</td>
-          <td>{sequence name}</td></tr></tbody></table></div></body>
+          <td>{islandora_PID}</td>
+          <td>{validation_result}</td>
+          <td>{check_datastreams}</td>
+          <td>{missing_datastreams}</td>
+          <td>{validation_time}</td></tr></tbody></table></div></body>
 </html>
