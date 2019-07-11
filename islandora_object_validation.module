@@ -7,6 +7,12 @@
  *
  */
 
+// pids_fetch_methods:
+define('ISLANDORA_OBJECT_VALIDATION_FETCH_LISTPIDS', 0);
+define('ISLANDORA_OBJECT_VALIDATION_FETCH_SOLR', 1);
+define('ISLANDORA_OBJECT_VALIDATION_FETCH_COLLECTION', 2);
+define('ISLANDORA_OBJECT_VALIDATION_FETCH_MODEL', 3);
+
 /**
  * Implements hook_menu().
  */
@@ -55,9 +61,12 @@ function islandora_object_validation_preprocess_page(&$vars) {
   $item = menu_get_item();
   if (is_array($item)) {
     if ($item['path'] == 'admin/islandora/tools/islandora_object_validation' ||
-      $item['path'] == 'admin/islandora/tools/islandora_object_validation/reports/%') {
+      $item['path'] == 'admin/islandora/tools/islandora_object_validation/validate_objects') {
       $module_path = drupal_get_path('module', 'islandora_object_validation');
       drupal_add_css($module_path . '/css/islandora_object_validation.css');
+      if ($item['path'] == 'admin/islandora/tools/islandora_object_validation/validate_objects') {
+        drupal_add_js($module_path . '/js/validation_form.js');
+      }
     }
   }
 }
@@ -66,51 +75,8 @@ function islandora_object_validation_preprocess_page(&$vars) {
  * Implements hook_islandora_object_ingested().
  */
 function islandora_object_validation_islandora_object_ingested($object) {
-  // Perform the validation check on this object only if this is configured to happen.
-  if (variable_get('islandora_object_validation_validate_on_ingest', 0) && is_object($object)) {
-    module_load_include('inc', 'islandora_object_validation', 'includes/db');
-    $object_models = $object->models;
-    $check_dsids = array();
-    $validation_datastreams = variable_get('islandora_object_validation_selected_cmodels', array());
-    foreach ($object_models as $object_model) {
-      $lc_name = str_replace("islandora:", "", strtolower($object_model));
-      if (strstr($object_model, 'fedora-system:') == '' && $lc_name) {
-        $lc_name = str_replace("islandora:", "", strtolower($object_model));
-        foreach ($validation_datastreams as $key => $validation_datastream) {
-          if (strstr($key, $lc_name) <> '') {
-            $dsid = str_replace($lc_name . '_', "", $key);
-            $check_dsids[$dsid] = $dsid;
-          }
-        }
-      }
-    }
-    $good_dsids = $successes = $failures = array();
-    // Need to check these datastreams for validity.
-    foreach ($object as $dsid => $fedoraDatastream) {
-      if (!(array_search($dsid, $check_dsids) === FALSE)) {
-        $model_has_datastream = FALSE;
-        try {
-          $model_has_datastream = $object[$dsid]; // ->content;
-          $good_dsids[$dsid] = $dsid;
-        }
-        catch (Exception $exception) {
-          $model_has_datastream = '';
-        }
-        if ($model_has_datastream) {
-          $successes[$dsid] = $dsid;
-        }
-        else {
-          $failures[$dsid] = $dsid;
-        }
-      }
-    }
-    foreach ($check_dsids as $dsid) {
-      if (array_key_exists($dsid, $good_dsids) === FALSE) {
-        $failures[$dsid] = $dsid;
-      }
-    }
-    islandora_object_validation_object_add_record($object, $check_dsids, $failures);
-  }
+  module_load_include('inc', 'islandora_object_validation', 'includes/utilities');
+  islandora_object_validation_validate($object);
 }
 
 function islandora_object_validation_get_validations_table($cmodels) {

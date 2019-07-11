@@ -20,3 +20,13 @@ function islandora_object_validation_object_add_record($object, $check_dsids, $f
       ->fields($fields)
       ->execute();
 }
+
+function islandora_object_validation_add_queue_record($object) {
+  $fields = array(
+      'islandora_pid' => $object->id,
+      'queued_timestamp' => date("Y-m-d H:i:s", time()),
+  );
+  db_insert('islandora_object_validation_queue')
+      ->fields($fields)
+      ->execute();
+}

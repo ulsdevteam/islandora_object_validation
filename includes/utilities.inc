@@ -212,3 +212,162 @@ function islandora_object_validation_scan_files($scan_path) {
 
   return $ret_arr;
 }
+
+function islandora_object_validation_get_pids_solr_query($solr_query) {
+  return implode('
+', islandora_object_validation_get_pids($solr_query));
+}
+
+function islandora_object_validation_get_pids_collection($collection) {
+  $query = format_string('!field:!value', array(
+    '!field' => 'RELS_EXT_isMemberOfCollection_uri_ms',
+    '!value' => str_replace(array("/", ":", "-", "+"), array("\/", "\:", "\-", "\+"), $collection),
+   ));
+  return implode('
+', islandora_object_validation_get_pids($query));
+}
+
+function islandora_object_validation_get_pids_model($model) {
+  $query = format_string('!field:!value', array(
+    '!field' => 'RELS_EXT_hasModel_uri_ms',
+    '!value' => str_replace(array("/", ":", "-", "+"), array("\/", "\:", "\-", "\+"), $model),
+   ));
+  return implode('
+', islandora_object_validation_get_pids($query));
+}
+
+function islandora_object_validation_get_pids($query) {
+  module_load_include('inc', 'islandora_solr', 'includes/utilities');
+  $query_processor = new IslandoraSolrQueryProcessor();
+  $ret_arr = array();
+  // run two queries --
+  // 1) to get the datastreams available on this object
+  $query_processor->solrQuery = $query;
+  $query_processor->solrStart = 0;
+  $query_processor->solrLimit = variable_get('islandora_object_validation_solr_limit', 10000);
+  $query_processor->solrParams = array('fl' => 'PID');
+
+  $url = parse_url(variable_get('islandora_solr_url', 'localhost:8080/solr'));
+  $solr = new Apache_Solr_Service($url['host'], $url['port'], $url['path'] . '/');
+  $solr->setCreateDocuments(FALSE);
+  try {
+    $search_results = $solr->search($query_processor->solrQuery, $query_processor->solrStart, $query_processor->solrLimit, $query_processor->solrParams, 'GET');
+    $tmp = json_decode($search_results->getRawResponse(), TRUE);
+
+    $results = array();
+    $numFound = $tmp['response']['numFound'];
+    if ($numFound == variable_get('islandora_object_validation_solr_limit', 10000)) {
+      drupal_set_message(t('The number of objects returned is the same as the maximum limit.  It is likely that there are more objects than ' . variable_get('islandora_object_validation_solr_limit', 10000)));
+    }
+
+    if ($tmp['response']['numFound'] > 0) {
+      foreach ($tmp['response']['docs'] as $k=>$rec) {
+        $ret_arr[] = $rec['PID'];
+      }
+    }
+  }
+  catch (Exception $e) {
+    error_log('EXCEPTION in islandora_object_validation_get_pids : called from ' . $_SERVER['SERVER_NAME'] .
+' - ' . $_SERVER['REQUEST_URI'] . '
+' . print_r($e, true));
+  }
+  return $ret_arr;
+}
+
+function islandora_object_validation_get_models() {
+  form_load_include($form_state, 'inc', 'islandora', 'includes/content_model.autocomplete');
+
+  // Retrieve all content models and unset those currently in use in this
+  // configuration and any others from other configurations.
+  $add_options = islandora_get_content_model_names();
+  return $add_options;
+}
+
+function islandora_object_validation_get_fetch_methods($pid_values) {
+  $fetch_methods = array(
+      ISLANDORA_OBJECT_VALIDATION_FETCH_LISTPIDS => 'List of PID values' .
+        ((count($pid_values) > 0) ? ' (' . count($pid_values) . ' PID value' .
+        ((count($pid_values) == 1) ? '' : 's') . ' supplied)' : ''));
+  if (module_exists('islandora_solr')) {
+    $fetch_methods[ISLANDORA_OBJECT_VALIDATION_FETCH_SOLR] = 'Solr query';
+    $fetch_methods[ISLANDORA_OBJECT_VALIDATION_FETCH_COLLECTION] = 'Collection';
+    $fetch_methods[ISLANDORA_OBJECT_VALIDATION_FETCH_MODEL] = 'Model';
+  }
+  return $fetch_methods;
+}
+
+function islandora_object_validation_get_solr_options($solr_query, $key_field, $value_field, $sort_field = '') {
+  $query_processor = new IslandoraSolrQueryProcessor();
+  $query_processor->solrQuery = $solr_query;
+  if ($sort_field) {
+    $query_processor->sort = $sort_field;
+  }
+  $query_processor->solrStart = 0;
+  $query_processor->solrLimit = 40000;
+  $query_processor->solrParams = array('fl' => $key_field . ',' . $value_field);
+
+  $url = parse_url(variable_get('islandora_solr_url', 'localhost:8080/solr'));
+  $solr = new Apache_Solr_Service($url['host'], $url['port'], $url['path'] . '/');
+  $solr->setCreateDocuments(FALSE);
+  $results = array();
+  try {
+    $search_results = $solr->search($query_processor->solrQuery, $query_processor->solrStart, $query_processor->solrLimit, $query_processor->solrParams, 'GET');
+    $tmp = json_decode($search_results->getRawResponse(), TRUE);
+    if ($tmp['response']['numFound'] > 0) {
+      foreach ($tmp['response']['docs'] as $rec) {
+        $results[$rec[$key_field]] = $rec[$value_field];
+      }
+    }
+  }
+  catch (Exception $e) {
+  }
+  return $results;
+}
+
+function islandora_object_validation_validate($object) {
+  // Perform the validation check on this object only if this is configured to happen.
+  if (variable_get('islandora_object_validation_validate_on_ingest', 0) && is_object($object)) {
+    module_load_include('inc', 'islandora_object_validation', 'includes/db');
+    $object_models = $object->models;
+    $check_dsids = array();
+    $validation_datastreams = variable_get('islandora_object_validation_selected_cmodels', array());
+    foreach ($object_models as $object_model) {
+      $lc_name = str_replace("islandora:", "", strtolower($object_model));
+      if (strstr($object_model, 'fedora-system:') == '' && $lc_name) {
+        $lc_name = str_replace("islandora:", "", strtolower($object_model));
+        foreach ($validation_datastreams as $key => $validation_datastream) {
+          if (strstr($key, $lc_name) <> '') {
+            $dsid = str_replace($lc_name . '_', "", $key);
+            $check_dsids[$dsid] = $dsid;
+          }
+        }
+      }
+    }
+    $good_dsids = $successes = $failures = array();
+    // Need to check these datastreams for validity.
+    foreach ($object as $dsid => $fedoraDatastream) {
+      if (!(array_search($dsid, $check_dsids) === FALSE)) {
+        $model_has_datastream = FALSE;
+        try {
+          $model_has_datastream = $object[$dsid]; // ->content;
+          $good_dsids[$dsid] = $dsid;
+        }
+        catch (Exception $exception) {
+          $model_has_datastream = '';
+        }
+        if ($model_has_datastream) {
+          $successes[$dsid] = $dsid;
+        }
+        else {
+          $failures[$dsid] = $dsid;
+        }
+      }
+    }
+    foreach ($check_dsids as $dsid) {
+      if (array_key_exists($dsid, $good_dsids) === FALSE) {
+        $failures[$dsid] = $dsid;
+      }
+    }
+    islandora_object_validation_object_add_record($object, $check_dsids, $failures);
+  }
+}

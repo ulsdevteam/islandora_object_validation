@@ -65,6 +65,20 @@ function islandora_object_validation_admin_settings(array $form, array &$form_st
           l(t('Validate Objects'), 'admin/islandora/tools/islandora_object_validation/validate_objects') .
           ' <span>- validate specific objects now.</span></li></ul>',
       ),
+      'solr_limit_wrapper' => array(
+        '#type' => 'fieldset',
+        'solr_limit' => array(
+          '#type' => 'textfield',
+          '#title' => 'Solr query limit',
+          '#description' => 'Use to control the maximum number of Solr records returned for "Solr query", "Collection", "Model" fetch methods.',
+          '#default_value' => variable_get('islandora_object_validation_solr_limit', 10000),
+        ),
+        'submit1' => array(
+          '#type' => 'submit',
+          '#value' => t('Save Configuration'),
+          '#weight' => 2,
+        ),
+      ),
     ),
     'validate_objects_wrapper' => array(
       '#type' => 'fieldset',
@@ -97,7 +111,7 @@ function islandora_object_validation_admin_settings(array $form, array &$form_st
           'are considered to be "REQUIRED" by the Islandora solution pack related ' .
           'to that model.  Datastreams that are marked with N/A are disabled and ' .
           'should never occur for that object model.'),
-      'submit' => array(
+      'submit3' => array(
         '#type' => 'submit',
         '#value' => t('Save Configuration'),
         '#prefix' => $validations_table,
@@ -120,6 +134,7 @@ function islandora_object_validation_admin_settings_submit($form, &$form_state) 
     }
   }
   variable_set('islandora_object_validation_selected_cmodels', $set_values);
+  variable_set('islandora_object_validation_solr_limit', $form_state['values']['solr_limit']);
   variable_set('islandora_object_validation_validate_on_ingest', $form_state['values']['validate_on_ingest']);
 }
 
