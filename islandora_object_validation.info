@@ -1,8 +1,6 @@
 name = Islandora Object Validation
 description = Validates various Islandora models for validation based on the datastreams.
 package = Islandora Tools
-dependencies[] = pathauto
-dependencies[] = token
 dependencies[] = islandora
 dependencies[] = forena
 

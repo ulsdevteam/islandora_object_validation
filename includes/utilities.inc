@@ -324,6 +324,10 @@ function islandora_object_validation_get_solr_options($solr_query, $key_field, $
   return $results;
 }
 
+function islandora_object_validation_normalize($in) {
+  return str_replace("_", "", strtolower($in));
+}
+
 function islandora_object_validation_validate($object) {
   // Perform the validation check on this object only if this is configured to happen.
   if (variable_get('islandora_object_validation_validate_on_ingest', 0) && is_object($object)) {
@@ -332,9 +336,8 @@ function islandora_object_validation_validate($object) {
     $check_dsids = array();
     $validation_datastreams = variable_get('islandora_object_validation_selected_cmodels', array());
     foreach ($object_models as $object_model) {
-      $lc_name = str_replace("islandora:", "", strtolower($object_model));
+      $lc_name = str_replace("islandora:", "",  islandora_object_validation_normalize($object_model));
       if (strstr($object_model, 'fedora-system:') == '' && $lc_name) {
-        $lc_name = str_replace("islandora:", "", strtolower($object_model));
         foreach ($validation_datastreams as $key => $validation_datastream) {
           if (strstr($key, $lc_name) <> '') {
             $dsid = str_replace($lc_name . '_', "", $key);
@@ -343,6 +346,7 @@ function islandora_object_validation_validate($object) {
         }
       }
     }
+    echo print_r($check_dsids, true) . "\n-------------------------------------------\n\n";
     $good_dsids = $successes = $failures = array();
     // Need to check these datastreams for validity.
     foreach ($object as $dsid => $fedoraDatastream) {
@@ -370,4 +374,57 @@ function islandora_object_validation_validate($object) {
     }
     islandora_object_validation_object_add_record($object, $check_dsids, $failures);
   }
+}
+
+function islandora_object_validation_get_validations_table($cmodels) {
+  $dsids = array();
+  $reqs = array();
+  $already_chosen = variable_get('islandora_object_validation_selected_cmodels', array());
+
+  foreach($cmodels as $key => $pid_label) {
+    $pid = $pid_label['pid'];
+    $name = $pid_label['label'];
+    $req = islandora_object_validation_object_model_datastream_requirements($pid);
+    $reqs[$pid] = $req;
+
+    $all = (array_key_exists('required', $req) || array_key_exists('optional', $req)) ?
+        array_merge($req['required'], $req['optional']) : array();
+    foreach ($all as $dsid => $ds_req) {
+      $dsids[$dsid] = $dsid;
+    }
+  }
+  ksort($dsids);
+  $rows = array();
+  foreach($cmodels as $key => $pid_label) {
+    $pid = $pid_label['pid'];
+    $name = $pid_label['label'];
+    $req = $reqs[$pid];
+    $row = array();
+    // Model
+    $row[] = '<div class="model_label"><label>' . $name . '</label>' .
+        '<span class="pid">' . l($pid, 'islandora/object/'. $pid) . '</span></div>';
+    foreach ($dsids as $dsid) {
+      $use_name = str_replace('islandora:', "", islandora_object_validation_normalize($pid));
+      $cbx_name = $use_name . '_' . $dsid;
+      $cbx_val = array_key_exists($cbx_name, $already_chosen) ? ' checked' : '';
+      $optional = (array_key_exists('optional', $req) && array_key_exists($dsid, $req['optional']));
+      $req_class = (array_key_exists('required', $req) && array_key_exists($dsid, $req['required'])) ? ' required' : '';
+      $cbx_title = $name . ' &rarr; ' . $dsid . " " . ($optional ? 'optional' : ($req_class ? 'required' : 'N/A'));
+      $checkbox = (($req_class ||
+          $optional)  ?
+          '<input type="checkbox"' . $cbx_val . ' name="' . $cbx_name . '" id="' . $cbx_name . '" title="' . $cbx_title . '">' :
+          // even though some datastreams are N/A, they may still need to be
+          // added to objects like in the case of aggregated PDF and consolidated
+          // OCR for paged content.
+          '<input type="checkbox"' . $cbx_val . ' name="' . $cbx_name . '" id="' . $cbx_name . '" title="' . $cbx_title . '">');
+//          '<input type="checkbox"' . $cbx_val . ' disabled name="' . $cbx_name . '" id="' . $cbx_name . '" title="' . $cbx_title . '">');
+      $row[] = '<div class="centered' . $req_class . ' fineprint">' .
+              $checkbox . '<br>' . (array_key_exists('required', $req) && array_key_exists($dsid, $req['required']) ? '&nbsp;' :
+          (array_key_exists('optional', $req) && array_key_exists($dsid, $req['optional']) ? '' : '<span class="item_na">N/A</span>')) .
+          '</div>';
+    }
+    $rows[] = $row;
+  }
+  $headers = array_keys(array_merge(array('Model' => 'Model'), $dsids));
+  return theme('table', array('header' => $headers, 'rows' => $rows));
 }

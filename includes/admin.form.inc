@@ -59,34 +59,34 @@ function islandora_object_validation_admin_settings(array $form, array &$form_st
       '#attributes' => array(
         'class' => array('round_fieldset'),
       ),
-      'link_validations' => array(
-        '#type' => 'item',
-        '#markup' => '<ul><li>' .
-          l(t('Validate Objects'), 'admin/islandora/tools/islandora_object_validation/validate_objects') .
-          ' <span>- validate specific objects now.</span></li></ul>',
+      'solr_limit' => array(
+        '#type' => 'textfield',
+        '#title' => t('Solr query limit'),
+        '#description' => 'Use to control the maximum number of Solr records returned for "Solr query", "Collection", "Model" fetch methods.',
+        '#default_value' => variable_get('islandora_object_validation_solr_limit', 10000),
       ),
-      'solr_limit_wrapper' => array(
-        '#type' => 'fieldset',
-        'solr_limit' => array(
-          '#type' => 'textfield',
-          '#title' => 'Solr query limit',
-          '#description' => 'Use to control the maximum number of Solr records returned for "Solr query", "Collection", "Model" fetch methods.',
-          '#default_value' => variable_get('islandora_object_validation_solr_limit', 10000),
-        ),
-        'submit1' => array(
-          '#type' => 'submit',
-          '#value' => t('Save Configuration'),
-          '#weight' => 2,
-        ),
+      'cron_limit' => array(
+        '#type' => 'textfield',
+        '#title' => t('CRON limit'),
+        '#description' => 'Use to control the maximum number of items that are processed from the validation queue for each CRON cycle.',
+        '#default_value' => variable_get('islandora_object_validation_cron_limit', 4000),
+      ),
+      'submit1' => array(
+        '#type' => 'submit',
+        '#value' => t('Save Configuration'),
+        '#weight' => 2,
+        '#suffix' => '<br><br>' . l(t('Validate Objects'),
+          'admin/islandora/tools/islandora_object_validation/validate_objects') .
+          ' <span>- validate specific objects now.</span>',
       ),
     ),
     'validate_objects_wrapper' => array(
       '#type' => 'fieldset',
+      '#title' => t('View results of object validation testing.'),
       '#attributes' => array(
         'class' => array('round_fieldset'),
       ),
       '#title' => t('Automatically validate objects?'),
-      '#description' => t('View results of object validation testing.'),
       'validate_on_ingest' => array(
         '#type' => 'checkbox',
         '#title' => t('Validate objects automatically upon ingest.'),
@@ -107,10 +107,11 @@ function islandora_object_validation_admin_settings(array $form, array &$form_st
       ),
       '#title' => t('Configure which content models are exposed to custom aliases'),
       '#description' => t('Select which datastreams are required for each Islandora '.
-          'model.  <span class="required">Checkboxes</span> with a red border ' .
-          'are considered to be "REQUIRED" by the Islandora solution pack related ' .
-          'to that model.  Datastreams that are marked with N/A are disabled and ' .
-          'should never occur for that object model.'),
+          'model.  Checkboxes that are twice as large as the rest are considered ' .
+          'to be "REQUIRED" by the Islandora solution pack related to that model.  ' .
+          'Datastreams that are marked with N/A are disabled and should never ' .
+          'occur for that object model, but this is not the case for aggregated ' .
+          'PDF and consolidated OCR for paged content.'),
       'submit3' => array(
         '#type' => 'submit',
         '#value' => t('Save Configuration'),
@@ -126,7 +127,8 @@ function islandora_object_validation_admin_settings(array $form, array &$form_st
  * Submit handler for admin form.
  */
 function islandora_object_validation_admin_settings_submit($form, &$form_state) {
-  $skip_POST_names = array('op', 'form_build_id', 'form_token', 'form_id');
+  $skip_POST_names = array('op', 'form_build_id', 'form_token', 'form_id',
+      'validate_on_ingest', 'cron_limit', 'solr_limit');
   $set_values = array();
   foreach ($_POST as $name => $value) {
     if (array_search($name, $skip_POST_names) === FALSE) {
@@ -135,6 +137,7 @@ function islandora_object_validation_admin_settings_submit($form, &$form_state) 
   }
   variable_set('islandora_object_validation_selected_cmodels', $set_values);
   variable_set('islandora_object_validation_solr_limit', $form_state['values']['solr_limit']);
+  variable_set('islandora_object_validation_cron_limit', $form_state['values']['cron_limit']);
   variable_set('islandora_object_validation_validate_on_ingest', $form_state['values']['validate_on_ingest']);
 }
 

@@ -79,53 +79,6 @@ function islandora_object_validation_islandora_object_ingested($object) {
   islandora_object_validation_validate($object);
 }
 
-function islandora_object_validation_get_validations_table($cmodels) {
-  $dsids = array();
-  $reqs = array();
-  $already_chosen = variable_get('islandora_object_validation_selected_cmodels', array());
-  foreach($cmodels as $key => $pid_label) {
-    $pid = $pid_label['pid'];
-    $name = $pid_label['label'];
-    $req = islandora_object_validation_object_model_datastream_requirements($pid);
-    $reqs[$pid] = $req;
-
-    $all = (array_key_exists('required', $req) || array_key_exists('optional', $req)) ?
-        array_merge($req['required'], $req['optional']) : array();
-    foreach ($all as $dsid => $ds_req) {
-      $dsids[$dsid] = $dsid;
-    }
-  }
-  ksort($dsids);
-  $rows = array();
-  foreach($cmodels as $key => $pid_label) {
-    $pid = $pid_label['pid'];
-    $name = $pid_label['label'];
-    $req = $reqs[$pid];
-    $row = array();
-    // Model
-    $row[] = '<div class="model_label"><label>' . $name . '</label>' .
-        '<span class="pid">' . l($pid, 'islandora/object/'. $pid) . '</span></div>';
-    foreach ($dsids as $dsid) {
-      $use_name = str_replace('islandora:', "", strtolower($pid));
-      $cbx_name = $use_name . '_' . $dsid;
-      $cbx_val = array_key_exists($cbx_name, $already_chosen) ? ' checked' : '';
-      $req_class = (array_key_exists('required', $req) && array_key_exists($dsid, $req['required'])) ? ' req' : '';
-      $checkbox = ((array_key_exists('required', $req) && array_key_exists($dsid, $req['required']) ||
-          (array_key_exists('optional', $req) && array_key_exists($dsid, $req['optional'])))  ?
-          '<input type="checkbox"' . $cbx_val . ' name="' . $cbx_name . '" id="' . $cbx_name . '">' :
-          '<input type="checkbox"' . $cbx_val . ' disabled name="' . $cbx_name . '" id="' . $cbx_name . '">');
-      $row[] = '<div class="centered' . $req_class . ' fineprint">' .
-              $checkbox . '<br>' . (array_key_exists('required', $req) && array_key_exists($dsid, $req['required']) ? '&nbsp;' :
-          (array_key_exists('optional', $req) && array_key_exists($dsid, $req['optional']) ? '<span class="item_optional">optional</span>' : '<span class="item_na">N/A</span>')) .
-          '</div>';
-    }
-    $rows[] = $row;
-  }
-  $headers = array_keys(array_merge(array('Model' => 'Model'), $dsids));
-  return theme('table', array('header' => $headers, 'rows' => $rows));
-}
-
-
 /**
  * Helper function to retrieve the Forena reports in the "Islandora Object
  * Validation" category

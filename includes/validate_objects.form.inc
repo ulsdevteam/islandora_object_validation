@@ -166,15 +166,12 @@ function islandora_object_validation_validate_objects_submit($form, &$form_state
   if ($pids) {
     $bad_pids = $skipped = array();
     $added_count = 0;
-    $pids_arr = explode("\r\n", $pids);
-
+    $pids_arr = explode("\n", $pids);
     foreach ($pids_arr as $pid) {
       $pid = trim($pid);
       $islandora_object = islandora_object_load($pid);
       if (is_object($islandora_object)) {
-        // run the $transform on the datastream
-
-        if (islandora_object_validation_validate_object($islandora_object)) {
+        if (islandora_object_validation_queue_validate_object($islandora_object)) {
           $added_count++;
         }
         else {
@@ -205,7 +202,7 @@ function islandora_object_validation_validate_objects_submit($form, &$form_state
  *
  * @param type $islandora_object
  */
-function islandora_object_validation_validate_object($islandora_object) {
+function islandora_object_validation_queue_validate_object($islandora_object) {
   module_load_include('inc', 'islandora_object_validation', 'includes/db');
-  islandora_object_validation_add_queue_record($islandora_object);
+  return islandora_object_validation_add_queue_record($islandora_object);
 }

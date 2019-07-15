@@ -10,10 +10,6 @@
     min-width: 330px;
 }
 
-.item_optional {
-    color: #777;
-}
-
 .item_na {
    color: #aaa;
 }
@@ -51,8 +47,9 @@
     background: url("../images/open-new-tab_16.png") top right no-repeat !important;
 }
 
-.req input[type=checkbox] .required {
-  outline:2px dotted #faa;
+.required input[type=checkbox] {
+    width: 2em;
+    height: 2em;
 }
 
 .round_fieldset {
