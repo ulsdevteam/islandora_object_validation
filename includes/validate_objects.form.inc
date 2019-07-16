@@ -62,6 +62,19 @@ function islandora_object_validation_validate_objects(array $form, array &$form_
       '#type' => 'hidden',
       '#default_value' => $default_pids_value,
     ),
+    'process_link' => array(
+      '#type' => 'fieldset',
+      '#title' => t('Process validation queue items'),
+      'cron_limit' => array(
+        '#type' => 'item',
+        '#description' => t('Clicking this will call `islandora_object_validation' .
+          '_validate_chunk_of_objects` which is what gets called by the drush call ' .
+          ' to "islandora_object_validation_validate_chunk_of_objects" via CRON ' .
+          '(if configured). '),
+        '#markup' => l(t('Process ' . number_format(variable_get('islandora_object_validation_cron_limit', 4000)) .
+          ' items validation queue'), 'admin/islandora/tools/islandora_object_validation/queue_do_chunk'),
+      ),
+    ),
     'objectsformset' => array(
       '#type' => 'fieldset',
       '#title' => t('Select objects'),
@@ -205,4 +218,17 @@ function islandora_object_validation_validate_objects_submit($form, &$form_state
 function islandora_object_validation_queue_validate_object($islandora_object) {
   module_load_include('inc', 'islandora_object_validation', 'includes/db');
   return islandora_object_validation_add_queue_record($islandora_object);
+}
+
+/**
+ * This will call the function to add a record to the queue table
+ * (islandora_object_validation_queue) which is used to processes validations
+ * out-of-process (configured to be called via CRON).
+ *
+ * @param type $islandora_object
+ */
+function islandora_object_validation_queue_do_chunk() {
+  module_load_include('inc', 'islandora_object_validation', 'islandora_object_validation.drush');
+  islandora_object_validation_validate_chunk_of_objects();
+  drupal_goto('admin/islandora/tools/islandora_object_validation/validate_objects');
 }

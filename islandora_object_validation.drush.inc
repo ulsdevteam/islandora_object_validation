@@ -37,25 +37,38 @@ function islandora_object_validation_validate_chunk_of_objects() {
   module_load_include('inc', 'islandora_object_validation', 'includes/db');
   module_load_include('inc', 'islandora_object_validation', 'includes/utilities');
 
+  $drush_run = (function_exists('drush_get_option'));
 //  module_load_include('module', 'islandora_object_validation', 'islandora_object_validation');
   // How many objects should be processed?
   //  -- check for a drush parameter for how many, if that is not set use the
   // value from islandora_object_validation_cron_limit variable.
-  $howmany = drush_get_option('howmany', NULL);
+  $howmany = ($drush_run ? drush_get_option('howmany', NULL) : NULL);
   if (is_null($howmany)) {
     $howmany = variable_get('islandora_object_validation_cron_limit', 4000);
   }
   $queued_objects = islandora_object_validation_get_chunk_of_queued_items($howmany);
-  echo "islandora_object_validation module Drush command validate_chunk_of_objects\n" .
+  if ($drush_run) {
+    echo "islandora_object_validation module Drush command validate_chunk_of_objects\n" .
       "How many = " . number_format($howmany) . "\n" .
       "Items returned = " . number_format(count($queued_objects)) .
       "\n------------\n";
+  }
   foreach ($queued_objects as $pid) {
     $islandora_object = islandora_object_load($pid);
     if (is_object($islandora_object)) {
       islandora_object_validation_validate($islandora_object);
-      echo $pid . " validated\n";
+      islandora_object_validation_remove_from_queue($pid);
+      if ($drush_run) {
+        echo $pid . " validated\n";
+      }
     }
   }
-  echo "done\n\n";
+  if (count($queued_objects) > 0) {
+    if ($drush_run) {
+      echo t('Validation tests performed on ' . number_format(count($queued_objects)) . ' objects.') . "\n-------------------------\n";
+    }
+    else {
+      drupal_set_message(t('Validation tests performed on ' . number_format(count($queued_objects)) . ' objects.'));
+    }
+  }
 }

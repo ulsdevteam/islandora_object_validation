@@ -1,5 +1,16 @@
 .centered {
     text-align: center;
+    padding-top: 1em;
+    padding-bottom: 1em;
+    min-height: 2em;
+}
+
+#edit-content-model-wrapper div table td:not(:first-child) {
+    outline: 1px solid #ddd;
+}
+
+#edit-content-model-wrapper div table td:first-child {
+    background-color: #e8e8e8;
 }
 
 .fineprint {
@@ -45,6 +56,22 @@
 .link_open_new_tab {
     padding-right: 20px;
     background: url("../images/open-new-tab_16.png") top right no-repeat !important;
+}
+
+.m_select {
+    font-size: 8pt;
+}
+
+.select_howmany {
+    background-color: teal;
+}
+
+.select_relationship {
+    background-color: yellow;
+}
+
+.select_related_to_model {
+    background-color: yellowgreen;
 }
 
 .required input[type=checkbox] {

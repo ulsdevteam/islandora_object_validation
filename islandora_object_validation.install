@@ -72,6 +72,13 @@ function islandora_object_validation_schema() {
         'length' => 150,
         'not null' => TRUE,
       ),
+      'relationship_requirement_result' => array(
+        'type' => 'int',
+        'size' => 'tiny',
+        'default' => 0,
+        'unsigned' => TRUE,
+        'not null' => TRUE,
+      ),
       'validation_time' => array(
         'type' => 'int',
         'not null' => FALSE,

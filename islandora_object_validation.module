@@ -35,6 +35,18 @@ function islandora_object_validation_menu() {
       'file' => 'includes/validate_objects.form.inc',
       'type' => MENU_CALLBACK,
     ),
+    'admin/islandora/tools/islandora_object_validation/queue_do_chunk' => array(
+      'title' => t('Process ' . number_format(variable_get('islandora_object_validation_cron_limit', 4000)) .
+          ' items validation queue'),
+      'description' => t('Clicking this will call `islandora_object_validation' .
+          '_validate_chunk_of_objects` which is what gets called by the drush call ' .
+          ' to "islandora_object_validation_validate_chunk_of_objects" via CRON ' .
+          '(if configured). '),
+      'page callback' => 'islandora_object_validation_queue_do_chunk',
+      'access arguments' => array('administer islandora_object_validation'),
+      'file' => 'includes/validate_objects.form.inc',
+      'type' => MENU_CALLBACK,
+    ),
   );
   return $items;
 }
@@ -64,9 +76,7 @@ function islandora_object_validation_preprocess_page(&$vars) {
       $item['path'] == 'admin/islandora/tools/islandora_object_validation/validate_objects') {
       $module_path = drupal_get_path('module', 'islandora_object_validation');
       drupal_add_css($module_path . '/css/islandora_object_validation.css');
-      if ($item['path'] == 'admin/islandora/tools/islandora_object_validation/validate_objects') {
-        drupal_add_js($module_path . '/js/validation_form.js');
-      }
+      drupal_add_js($module_path . '/js/islandora_object_validation.js');
     }
   }
 }

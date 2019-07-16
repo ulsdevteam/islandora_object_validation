@@ -332,21 +332,30 @@ function islandora_object_validation_validate($object) {
   // Perform the validation check on this object only if this is configured to happen.
   if (variable_get('islandora_object_validation_validate_on_ingest', 0) && is_object($object)) {
     module_load_include('inc', 'islandora_object_validation', 'includes/db');
+    // Get the $object's model and check to see if there are any
     $object_models = $object->models;
     $check_dsids = array();
+    $relationship_requirement_result = TRUE;
     $validation_datastreams = variable_get('islandora_object_validation_selected_cmodels', array());
+    $model_relationships = variable_get('islandora_object_validation_model_relationships', array());
     foreach ($object_models as $object_model) {
       $lc_name = str_replace("islandora:", "",  islandora_object_validation_normalize($object_model));
+      // We only want to validate the overridden islandora models.
       if (strstr($object_model, 'fedora-system:') == '' && $lc_name) {
+        // check for any relationship validation requirement.
+        $relationship_requirement_result &= (array_key_exists($lc_name, $model_relationships) && array_key_exists('relationship', $model_relationships[$lc_name]));
+
         foreach ($validation_datastreams as $key => $validation_datastream) {
-          if (strstr($key, $lc_name) <> '') {
+          $first_n_chars = substr($key, 0, strlen($lc_name) + 1);
+          if ($first_n_chars == ($lc_name . '_')) {
+//          if (strstr($key, $lc_name) <> '') {
             $dsid = str_replace($lc_name . '_', "", $key);
             $check_dsids[$dsid] = $dsid;
           }
         }
       }
     }
-    echo print_r($check_dsids, true) . "\n-------------------------------------------\n\n";
+    echo "<pre>" . print_r($check_dsids, true) . "\n-------------------------------------------\n\n</pre>";
     $good_dsids = $successes = $failures = array();
     // Need to check these datastreams for validity.
     foreach ($object as $dsid => $fedoraDatastream) {
@@ -372,18 +381,68 @@ function islandora_object_validation_validate($object) {
         $failures[$dsid] = $dsid;
       }
     }
-    islandora_object_validation_object_add_record($object, $check_dsids, $failures);
+    islandora_object_validation_object_add_record($object, $check_dsids, $failures, $relationship_requirement_result);
   }
+}
+
+function islandora_object_validation_get_select_box($model_relationships, $which, $use_name, $object_pid = '', $all_models = array()) {
+  // The first part of the control is the same for all modes of $which
+  $open_select = '<select class="m_select ' . $which . '" id="' . $use_name . 
+      '_' . $which . '" name="' . $use_name . '_' . $which . '">';
+  switch ($which) {
+    case 'howmany':
+      $return_markup = $open_select .
+        '<option value="">None</option>' .
+        '<option value="1">Exactly 1</option>' .
+        '<option value="2">At least 1</option>' .
+        '</select>';
+      break;
+    case 'relationship':
+      // These can just be hard-coded and would require a code update in order to
+      // add support for any other relationships.
+      $relationships = array('isMemberOf', 'isPageOf', 'isConstituentOf');
+      $options = '<option value="">None</option>';
+      foreach ($relationships as $relationship) {
+        $selected = (array_key_exists($use_name, $model_relationships) && array_key_exists('relationship', $model_relationships[$use_name]) && $model_relationships[$use_name]['relationship'] == $relationship) ?
+            ' selected' : '';
+        $options .= '<option value="' . $relationship . '"' . $selected . '>' .
+            $relationship . '</option>';
+      }
+      $return_markup = $open_select .
+          $options .
+        '</select>';
+      break;
+    case 'related_to_model':
+      $options = '<option value="">None</option>';
+      foreach ($all_models as $pid => $label) {
+        // Object models are never related to the same model, so only add the
+        // ones that are not $object_pid value.
+        if ($pid <> $object_pid) {
+          $options .= '<option value="' . $pid . '">' . $label . '</option>';
+        }
+      }
+      $return_markup = $open_select .
+          $options .
+        '</select>';
+      break;
+
+    default:
+      break;
+  }
+  return $return_markup;
 }
 
 function islandora_object_validation_get_validations_table($cmodels) {
   $dsids = array();
   $reqs = array();
   $already_chosen = variable_get('islandora_object_validation_selected_cmodels', array());
+  $model_relationships = variable_get('islandora_object_validation_model_relationships', array());
 
+  $all_models = array();
   foreach($cmodels as $key => $pid_label) {
     $pid = $pid_label['pid'];
     $name = $pid_label['label'];
+    $all_models[$pid] = $name;
     $req = islandora_object_validation_object_model_datastream_requirements($pid);
     $reqs[$pid] = $req;
 
@@ -398,28 +457,37 @@ function islandora_object_validation_get_validations_table($cmodels) {
   foreach($cmodels as $key => $pid_label) {
     $pid = $pid_label['pid'];
     $name = $pid_label['label'];
+    $use_name = str_replace('islandora:', "", islandora_object_validation_normalize($pid));
     $req = $reqs[$pid];
     $row = array();
+    $select_box_howmany = islandora_object_validation_get_select_box($model_relationships, 'howmany', $use_name);
+    $select_box_othermodels = islandora_object_validation_get_select_box($model_relationships, 'related_to_model', $use_name, $pid, $all_models);
+    $select_box_relationships = islandora_object_validation_get_select_box($model_relationships, 'relationship', $use_name);
     // Model
-    $row[] = '<div class="model_label"><label>' . $name . '</label>' .
-        '<span class="pid">' . l($pid, 'islandora/object/'. $pid) . '</span></div>';
+    $row[] = '<div class="model_label" title="' . $name . '"><label>' . $name . '</label>' .
+        '<span class="pid">' . l($pid, 'islandora/object/'. $pid) . '</span><br>' .
+        '<span title="Relationship requirement" class="fineprint">Requires a ' .
+        $select_box_relationships . ' relationship to ' .
+        $select_box_howmany . '<br>' .
+        $select_box_othermodels . ' ' .
+        '</div>';
     foreach ($dsids as $dsid) {
-      $use_name = str_replace('islandora:', "", islandora_object_validation_normalize($pid));
       $cbx_name = $use_name . '_' . $dsid;
       $cbx_val = array_key_exists($cbx_name, $already_chosen) ? ' checked' : '';
       $optional = (array_key_exists('optional', $req) && array_key_exists($dsid, $req['optional']));
       $req_class = (array_key_exists('required', $req) && array_key_exists($dsid, $req['required'])) ? ' required' : '';
-      $cbx_title = $name . ' &rarr; ' . $dsid . " " . ($optional ? 'optional' : ($req_class ? 'required' : 'N/A'));
+      $cell_title = $name . ' &rarr; ' . $dsid . " " . ($optional ? 'optional' : ($req_class ? 'required' : 'N/A'));
       $checkbox = (($req_class ||
           $optional)  ?
-          '<input type="checkbox"' . $cbx_val . ' name="' . $cbx_name . '" id="' . $cbx_name . '" title="' . $cbx_title . '">' :
+          '<input type="checkbox"' . $cbx_val . ' name="' . $cbx_name . '" id="' . $cbx_name . '">' :
           // even though some datastreams are N/A, they may still need to be
           // added to objects like in the case of aggregated PDF and consolidated
           // OCR for paged content.
-          '<input type="checkbox"' . $cbx_val . ' name="' . $cbx_name . '" id="' . $cbx_name . '" title="' . $cbx_title . '">');
-//          '<input type="checkbox"' . $cbx_val . ' disabled name="' . $cbx_name . '" id="' . $cbx_name . '" title="' . $cbx_title . '">');
-      $row[] = '<div class="centered' . $req_class . ' fineprint">' .
-              $checkbox . '<br>' . (array_key_exists('required', $req) && array_key_exists($dsid, $req['required']) ? '&nbsp;' :
+          '<input type="checkbox"' . $cbx_val . ' name="' . $cbx_name . '" id="' . $cbx_name . '">');
+//          '<input type="checkbox"' . $cbx_val . ' disabled name="' . $cbx_name . '" id="' . $cbx_name . '">');
+      $row[] = '<div class="checkbox_cell centered' . $req_class . ' fineprint" ' .
+          'id="cell_' . $cbx_name . '" title="' . $cell_title . '">' .
+          $checkbox . '<br>' . (array_key_exists('required', $req) && array_key_exists($dsid, $req['required']) ? '&nbsp;' :
           (array_key_exists('optional', $req) && array_key_exists($dsid, $req['optional']) ? '' : '<span class="item_na">N/A</span>')) .
           '</div>';
     }

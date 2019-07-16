@@ -130,12 +130,24 @@ function islandora_object_validation_admin_settings_submit($form, &$form_state) 
   $skip_POST_names = array('op', 'form_build_id', 'form_token', 'form_id',
       'validate_on_ingest', 'cron_limit', 'solr_limit');
   $set_values = array();
+  $relationship_values = array();
   foreach ($_POST as $name => $value) {
     if (array_search($name, $skip_POST_names) === FALSE) {
-      $set_values[$name] = $value;
+      // put the selectbox values into their own array of values
+      if (strstr($name, '_relationship') || strstr($name, '_howmany') || strstr($name, '_related_to_model')) {
+        @list($obj_pid_normalized, $verb) = explode("_", $name, 2);
+        if ($obj_pid_normalized) {
+          $relationship_values[$obj_pid_normalized][$verb] = $value;
+        }
+      }
+      else {
+        // put the value into the $set_values for cmodels
+        $set_values[$name] = $value;
+      }
     }
   }
   variable_set('islandora_object_validation_selected_cmodels', $set_values);
+  variable_set('islandora_object_validation_model_relationships', $relationship_values);
   variable_set('islandora_object_validation_solr_limit', $form_state['values']['solr_limit']);
   variable_set('islandora_object_validation_cron_limit', $form_state['values']['cron_limit']);
   variable_set('islandora_object_validation_validate_on_ingest', $form_state['values']['validate_on_ingest']);
