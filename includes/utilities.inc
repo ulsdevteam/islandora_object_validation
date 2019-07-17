@@ -330,7 +330,7 @@ function islandora_object_validation_normalize($in) {
 
 function islandora_object_validation_validate($object) {
   // Perform the validation check on this object only if this is configured to happen.
-  if (variable_get('islandora_object_validation_validate_on_ingest', 0) && is_object($object)) {
+  if (is_object($object)) {
     module_load_include('inc', 'islandora_object_validation', 'includes/db');
     // Get the $object's model and check to see if there are any
     $object_models = $object->models;
@@ -368,7 +368,7 @@ function islandora_object_validation_validate($object) {
         catch (Exception $exception) {
           $model_has_datastream = '';
         }
-        if ($model_has_datastream) {
+        if ($model_has_datastream && $model_has_datastream->size > 0) {
           $successes[$dsid] = $dsid;
         }
         else {
@@ -447,7 +447,7 @@ function islandora_object_validation_get_validations_table($cmodels) {
     $reqs[$pid] = $req;
 
     $all = (array_key_exists('required', $req) || array_key_exists('optional', $req)) ?
-        array_merge($req['required'], $req['optional']) : array();
+        array_merge($req['required'], ((array_key_exists('optional', $req) && is_array($req['optional'])) ? $req['optional'] : array())) : array();
     foreach ($all as $dsid => $ds_req) {
       $dsids[$dsid] = $dsid;
     }

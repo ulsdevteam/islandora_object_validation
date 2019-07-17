@@ -38,7 +38,6 @@ function islandora_object_validation_validate_chunk_of_objects() {
   module_load_include('inc', 'islandora_object_validation', 'includes/utilities');
 
   $drush_run = (function_exists('drush_get_option'));
-//  module_load_include('module', 'islandora_object_validation', 'islandora_object_validation');
   // How many objects should be processed?
   //  -- check for a drush parameter for how many, if that is not set use the
   // value from islandora_object_validation_cron_limit variable.
@@ -58,9 +57,6 @@ function islandora_object_validation_validate_chunk_of_objects() {
     if (is_object($islandora_object)) {
       islandora_object_validation_validate($islandora_object);
       islandora_object_validation_remove_from_queue($pid);
-      if ($drush_run) {
-        echo $pid . " validated\n";
-      }
     }
   }
   if (count($queued_objects) > 0) {

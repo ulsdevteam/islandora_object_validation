@@ -105,13 +105,14 @@ function islandora_object_validation_admin_settings(array $form, array &$form_st
       '#attributes' => array(
         'class' => array('round_fieldset'),
       ),
-      '#title' => t('Configure which content models are exposed to custom aliases'),
+      '#title' => t('Configure which datastreams need to exist for each content model that may be validated'),
       '#description' => t('Select which datastreams are required for each Islandora '.
           'model.  Checkboxes that are twice as large as the rest are considered ' .
           'to be "REQUIRED" by the Islandora solution pack related to that model.  ' .
           'Datastreams that are marked with N/A are disabled and should never ' .
           'occur for that object model, but this is not the case for aggregated ' .
-          'PDF and consolidated OCR for paged content.'),
+          'PDF and consolidated OCR for paged content.<b>Note:</b> any ' .
+          'datastream that is less than 1 byte in size will fail validation.'),
       'submit3' => array(
         '#type' => 'submit',
         '#value' => t('Save Configuration'),
