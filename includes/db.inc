@@ -60,3 +60,20 @@ function islandora_object_validation_get_chunk_of_queued_items($how_many_per_chu
   }
   return $return_array;
 }
+
+function islandora_object_validation_get_history_records($pid) {
+  $query = db_select('islandora_object_validation_history', 'vh')
+    ->fields('vh', array('validation_time', 'validation_result', 'missing_datastreams', 'check_datastreams', 'relationship_requirement_result'))
+    ->condition('vh.islandora_pid', $pid)
+    ->orderBy('vh.validation_time', 'ASC');
+  $results = $query->execute();
+  $rows = $results->fetchAll();
+  $return_array = array();
+  foreach ($rows as $row) {
+    $row->validation_result = ($row->validation_result) ? 'PASS' : '<a href="/islandora/object/' .
+        $pid . '/manage/islandora_object_validation" title="Failed validation -- validate again"><span class="bad">FAIL</span></a>';
+    $row->relationship_requirement_result = ($row->relationship_requirement_result) ? 'PASS' : '<span class="bad">FAIL</span>';
+    $return_array[] = (array)$row;
+  }
+  return $return_array;
+}

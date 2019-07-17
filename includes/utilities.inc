@@ -496,3 +496,18 @@ function islandora_object_validation_get_validations_table($cmodels) {
   $headers = array_keys(array_merge(array('Model' => 'Model'), $dsids));
   return theme('table', array('header' => $headers, 'rows' => $rows));
 }
+
+
+function islandora_object_validation_get_history_table($pid) {
+  module_load_include('inc', 'islandora_object_validation', 'includes/db');
+  $history_records = islandora_object_validation_get_history_records($pid);
+
+  $headers = array(
+      'validation_time' => 'Validation Date',
+      'validation_result' => 'Valid?',
+      'missing_datastreams' => 'Failure datastreams',
+      'check_datastreams' => 'Checked datastreams',
+      'relationship_requirement_result' => 'Valid Relationship?',
+      );
+  return theme('table', array('header' => $headers, 'rows' => $history_records));
+}

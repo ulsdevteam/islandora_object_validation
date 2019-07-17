@@ -47,6 +47,23 @@ function islandora_object_validation_menu() {
       'file' => 'includes/validate_objects.form.inc',
       'type' => MENU_CALLBACK,
     ),
+    // AJAX callback to add an islandora object to the validation queue.
+    'admin/islandora/tools/islandora_object_validation/queue_object/%' => array(
+      'page callback' => 'islandora_object_validation_queue_object',
+      'page arguments' => array(5),
+      'access arguments' => array('administer islandora_object_validation'),
+      'file' => 'includes/validate_objects.form.inc',
+      'type' => MENU_CALLBACK,
+    ),
+    'islandora/object/%islandora_object/manage/islandora_object_validation' => array(
+      'title' => 'Validation History',
+      'page callback' => 'drupal_get_form',
+      'page arguments' => array('islandora_object_validation_history_form', 2),
+      'type' => MENU_LOCAL_TASK,
+      'file' => 'includes/islandora_object_validation_history.form.inc',
+      'access arguments' => array('administer islandora_object_validation'),
+    ),
+
   );
   return $items;
 }

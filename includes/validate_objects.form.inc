@@ -232,3 +232,12 @@ function islandora_object_validation_queue_do_chunk() {
   islandora_object_validation_validate_chunk_of_objects();
   drupal_goto('admin/islandora/tools/islandora_object_validation/validate_objects');
 }
+
+function islandora_object_validation_queue_object($pid) {
+  $islandora_object = islandora_object_load($pid);
+  module_load_include('inc', 'islandora_object_validation', 'includes/db');
+  islandora_object_validation_add_queue_record($islandora_object);
+  drupal_set_message(t('The object @pid hass been added to the validation queue.'),
+      array('@pid' => $pid), 'status');
+  drupal_goto('islandora/object/' . $pid . '/manage/islandora_object_validation');
+}

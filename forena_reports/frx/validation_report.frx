@@ -17,7 +17,7 @@
 <frx:docgen>
 </frx:docgen>
 <frx:fields>
-  <frx:field id="islandora_PID" link="islandora/object/{islandora_PID}"/>
+  <frx:field id="islandora_PID" link="/islandora/object/{islandora_PID}/manage/islandora_object_validation"/>
 </frx:fields>
 <frx:menu/>
 <frx:cache/>
