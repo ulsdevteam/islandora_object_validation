@@ -102,8 +102,10 @@ function islandora_object_validation_preprocess_page(&$vars) {
  * Implements hook_islandora_object_ingested().
  */
 function islandora_object_validation_islandora_object_ingested($object) {
-  module_load_include('inc', 'islandora_object_validation', 'includes/utilities');
-  islandora_object_validation_validate($object);
+  if (variable_get('islandora_object_validation_validate_on_ingest', 0)) {
+    module_load_include('inc', 'islandora_object_validation', 'includes/utilities');
+    islandora_object_validation_validate($object);
+  }
 }
 
 /**

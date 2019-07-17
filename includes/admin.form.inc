@@ -61,14 +61,14 @@ function islandora_object_validation_admin_settings(array $form, array &$form_st
       ),
       'solr_limit' => array(
         '#type' => 'textfield',
-        '#title' => t('Solr query limit'),
-        '#description' => 'Use to control the maximum number of Solr records returned for "Solr query", "Collection", "Model" fetch methods.',
+        '#title' => t('Default Solr query limit'),
+        '#description' => t('Controls the value used on the Validate Objects form.'),
         '#default_value' => variable_get('islandora_object_validation_solr_limit', 10000),
       ),
       'cron_limit' => array(
         '#type' => 'textfield',
         '#title' => t('CRON limit'),
-        '#description' => 'Use to control the maximum number of items that are processed from the validation queue for each CRON cycle.',
+        '#description' => t('Use to control the maximum number of items that are processed from the validation queue for each CRON cycle.'),
         '#default_value' => variable_get('islandora_object_validation_cron_limit', 4000),
       ),
       'submit1' => array(
@@ -105,8 +105,10 @@ function islandora_object_validation_admin_settings(array $form, array &$form_st
       '#attributes' => array(
         'class' => array('round_fieldset'),
       ),
-      '#title' => t('Configure which datastreams need to exist for each content model that may be validated'),
-      '#description' => t('Select which datastreams are required for each Islandora '.
+      '#title' => t('Islandora model requirements table'),
+      '#description' => t('<em>Configure which datastreams need to exist for ' .
+          'each content model that may be validated</em><br>Select which ' .
+          'datastreams are required for each Islandora '.
           'model.  Checkboxes that are twice as large as the rest are considered ' .
           'to be "REQUIRED" by the Islandora solution pack related to that model.  ' .
           'Datastreams that are marked with N/A are disabled and should never ' .

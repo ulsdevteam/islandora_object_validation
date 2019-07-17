@@ -65,6 +65,9 @@ function islandora_object_validation_validate_objects(array $form, array &$form_
     'process_link' => array(
       '#type' => 'fieldset',
       '#title' => t('Process validation queue items'),
+      '#attributes' => array(
+        'class' => array('round_fieldset'),
+      ),
       'cron_limit' => array(
         '#type' => 'item',
         '#description' => t('Clicking this will call `islandora_object_validation' .
@@ -78,8 +81,10 @@ function islandora_object_validation_validate_objects(array $form, array &$form_
     'objectsformset' => array(
       '#type' => 'fieldset',
       '#title' => t('Select objects'),
-      '#collapsible' => TRUE,
       '#description' => t('For the export, select the method to select the objects.'),
+      '#attributes' => array(
+        'class' => array('round_fieldset'),
+      ),
       'pids_fetch_method' => array(
         '#type' => 'radios',
         '#options' => $fetch_methods,
@@ -123,9 +128,21 @@ function islandora_object_validation_validate_objects(array $form, array &$form_
         '#group' => 'validation_form',
       ),
     ),
+    'utility_wrapper' => array(
+      '#type' => 'fieldset',
+      '#attributes' => array(
+        'class' => array('round_fieldset'),
+      ),
+      'solr_limit' => array(
+        '#type' => 'textfield',
+        '#title' => t('Solr query limit'),
+        '#description' => t('Use to control the maximum number of Solr records returned for "Solr query", "Collection", "Model" fetch methods.'),
+        '#default_value' => variable_get('islandora_object_validation_solr_limit', 10000),
+      ),
+    ),
     'submit' => array(
       '#type' => 'submit',
-      '#value' => t('Update'),
+      '#value' => t('Add to Queue'),
     ),
   );
 
@@ -140,6 +157,7 @@ function islandora_object_validation_validate_objects_submit($form, &$form_state
   global $user;
 
   $pids_fetch_method = $form_state['values']['pids_fetch_method'];
+  $limit = $form_state['values']['solr_limit'];
   $pids = NULL;
 
   // Unset the _SESSION value here.
@@ -154,7 +172,7 @@ function islandora_object_validation_validate_objects_submit($form, &$form_state
     case ISLANDORA_OBJECT_VALIDATION_FETCH_SOLR:
       $solr_query = $form_state['values']['solr_query'];
       drupal_set_message('Lookup PIDS for Solr query: "' . $solr_query . '"');
-      $pids = islandora_object_validation_get_pids_solr_query($solr_query);
+      $pids = islandora_object_validation_get_pids_solr_query($solr_query, $limit);
       break;
 
     // 1 - List of PIDS
@@ -166,14 +184,14 @@ function islandora_object_validation_validate_objects_submit($form, &$form_state
     case ISLANDORA_OBJECT_VALIDATION_FETCH_COLLECTION:
       $collection = $form_state['values']['collection'];
       drupal_set_message('Lookup PIDS for Collection: "' . $collection . '"');
-      $pids = islandora_object_validation_get_pids_collection($collection);
+      $pids = islandora_object_validation_get_pids_collection($collection, $limit);
       break;
 
     // 3 - Model
     case ISLANDORA_OBJECT_VALIDATION_FETCH_MODEL:
       $model = $form_state['values']['model'];
       drupal_set_message('Lookup PIDS for fedora Model: "' . $model . '"');
-      $pids = islandora_object_validation_get_pids_model($model);
+      $pids = islandora_object_validation_get_pids_model($model, $limit);
       break;
   }
   if ($pids) {
@@ -201,7 +219,7 @@ function islandora_object_validation_validate_objects_submit($form, &$form_state
     if (count($bad_pids) > 0) {
       drupal_set_message('At least one of the PID values were not able to be loaded as an object.  These are: \'' . implode("', '", $bad_pids) . '\'', 'warning');
     }
-    drupal_set_message('The objects have been added to the validation queue.');
+    drupal_set_message(number_format($added_count) . t(' objects have been added to the validation queue.'));
   }
   else {
     drupal_set_message(t('There were no PID values for this export.  Please try again.'));

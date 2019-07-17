@@ -213,38 +213,41 @@ function islandora_object_validation_scan_files($scan_path) {
   return $ret_arr;
 }
 
-function islandora_object_validation_get_pids_solr_query($solr_query) {
+function islandora_object_validation_get_pids_solr_query($solr_query, $limit = 0) {
   return implode('
-', islandora_object_validation_get_pids($solr_query));
+', islandora_object_validation_get_pids($solr_query, $limit));
 }
 
-function islandora_object_validation_get_pids_collection($collection) {
+function islandora_object_validation_get_pids_collection($collection, $limit = 0) {
   $query = format_string('!field:!value', array(
     '!field' => 'RELS_EXT_isMemberOfCollection_uri_ms',
     '!value' => str_replace(array("/", ":", "-", "+"), array("\/", "\:", "\-", "\+"), $collection),
    ));
   return implode('
-', islandora_object_validation_get_pids($query));
+', islandora_object_validation_get_pids($query, $limit));
 }
 
-function islandora_object_validation_get_pids_model($model) {
+function islandora_object_validation_get_pids_model($model, $limit = 0) {
   $query = format_string('!field:!value', array(
     '!field' => 'RELS_EXT_hasModel_uri_ms',
     '!value' => str_replace(array("/", ":", "-", "+"), array("\/", "\:", "\-", "\+"), $model),
    ));
   return implode('
-', islandora_object_validation_get_pids($query));
+', islandora_object_validation_get_pids($query, $limit));
 }
 
-function islandora_object_validation_get_pids($query) {
+function islandora_object_validation_get_pids($query, $limit = 0) {
   module_load_include('inc', 'islandora_solr', 'includes/utilities');
+  if (!$limit) {
+    $limit = variable_get('islandora_object_validation_solr_limit', 10000);
+  }
   $query_processor = new IslandoraSolrQueryProcessor();
   $ret_arr = array();
   // run two queries --
   // 1) to get the datastreams available on this object
   $query_processor->solrQuery = $query;
   $query_processor->solrStart = 0;
-  $query_processor->solrLimit = variable_get('islandora_object_validation_solr_limit', 10000);
+  $query_processor->solrLimit = $limit;
   $query_processor->solrParams = array('fl' => 'PID');
 
   $url = parse_url(variable_get('islandora_solr_url', 'localhost:8080/solr'));

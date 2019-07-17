@@ -112,6 +112,9 @@ function islandora_object_validation_schema() {
     'indexes' => array(
       'ss_queued_timestamp' => array('queued_timestamp'),
     ),
+    'unique keys' => array(
+      'u_islandora_PID'=> array('islandora_PID'),
+    ),
     'primary key' => array('id'),
   );
 
