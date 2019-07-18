@@ -13,7 +13,6 @@ function islandora_object_validation_history_form(array $form, array &$form_stat
   module_load_include('inc', 'islandora_object_validation', 'includes/utilities');
 
   $history_table = islandora_object_validation_get_history_table($object->id);
-
   $form['history_form'] = array(
     'validate_button' => array(
       '#type' => 'submit',

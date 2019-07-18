@@ -19,7 +19,7 @@
  *   The result of any relationship assertion for the object's models.
  */
 function islandora_object_validation_object_add_record($object, $check_datastreams, $missing_datastreams, $relationship_requirement_result) {
-  $validation_result = (count($missing_datastreams) > 0) ? 0 : 1;
+  $validation_result = (count($missing_datastreams) > 0 || !$relationship_requirement_result) ? 0 : 1;
   // Convert these variables to a string for database storage.
   $check_datastreams = implode(",", $check_datastreams);
   $missing_datastreams = implode(",", $missing_datastreams);
@@ -125,10 +125,12 @@ function islandora_object_validation_get_history_records($pid) {
   $results = $query->execute();
   $rows = $results->fetchAll();
   $return_array = array();
+  $good_span = '<span class="good">';
+  $bad_span = '<span class="bad">';
   foreach ($rows as $row) {
-    $row->validation_result = ($row->validation_result) ? 'PASS' : '<a href="/islandora/object/' .
-        $pid . '/manage/islandora_object_validation" title="Failed validation -- validate again"><span class="bad">FAIL</span></a>';
-    $row->relationship_requirement_result = ($row->relationship_requirement_result) ? '<span class="good">PASS</span>' : '<span class="bad">FAIL</span>';
+    $row->validation_result = ($row->validation_result) ? $good_span . 'PASS</span>' : $bad_span . 'FAIL</span>';
+    $row->missing_datastreams = ($row->missing_datastreams) ? $bad_span . $row->missing_datastreams . '</span>' : '';
+    $row->relationship_requirement_result = ($row->relationship_requirement_result) ? $good_span . 'PASS</span>' : $bad_span . 'FAIL</span>';
     $return_array[] = (array)$row;
   }
   return $return_array;

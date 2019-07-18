@@ -331,6 +331,12 @@ function islandora_object_validation_normalize($in) {
   return str_replace("_", "", strtolower($in));
 }
 
+/**
+ * Performs the actual validation of an islandora object using the configuration.
+ *
+ * @param stdObject $object
+ *   The islandora object being validated.
+ */
 function islandora_object_validation_validate($object) {
   // Perform the validation check on this object only if this is configured to happen.
   if (is_object($object)) {
@@ -345,20 +351,17 @@ function islandora_object_validation_validate($object) {
       $lc_name = str_replace("islandora:", "",  islandora_object_validation_normalize($object_model));
       // We only want to validate the overridden islandora models.
       if (strstr($object_model, 'fedora-system:') == '' && $lc_name) {
-        // check for any relationship validation requirement.
-        $relationship_requirement_result &= (array_key_exists($lc_name, $model_relationships) && array_key_exists('relationship', $model_relationships[$lc_name]));
-
+        // Check for any relationship validation requirement.
+        $relationship_requirement_result &= islandora_object_validation_validate_relationship($object, $model_relationships[$lc_name]);
         foreach ($validation_datastreams as $key => $validation_datastream) {
           $first_n_chars = substr($key, 0, strlen($lc_name) + 1);
           if ($first_n_chars == ($lc_name . '_')) {
-//          if (strstr($key, $lc_name) <> '') {
             $dsid = str_replace($lc_name . '_', "", $key);
             $check_dsids[$dsid] = $dsid;
           }
         }
       }
     }
-    echo "<pre>" . print_r($check_dsids, true) . "\n-------------------------------------------\n\n</pre>";
     $good_dsids = $successes = $failures = array();
     // Need to check these datastreams for validity.
     foreach ($object as $dsid => $fedoraDatastream) {
@@ -385,6 +388,62 @@ function islandora_object_validation_validate($object) {
       }
     }
     islandora_object_validation_object_add_record($object, $check_dsids, $failures, $relationship_requirement_result);
+  }
+}
+
+function islandora_object_validation_validate_relationship($object, $model_config) {
+  // Require that there are values in all of the fields
+  if (array_key_exists('relationship', $model_config) &&
+    $model_config['relationship'] && array_key_exists('howmany', $model_config) &&
+    $model_config['howmany'] && array_key_exists('related_to_model', $model_config) &&
+    $model_config['related_to_model']) {
+    $rels_ext = $object->relationships;
+    $object_relationships_in_question = $rels_ext->get(ISLANDORA_RELS_EXT_URI, $model_config['relationship']);
+    // There should be at least one array element returned with this relationship
+    $matches = 0;
+    // at least one relationship exists for the model with the predicate
+    foreach ($object_relationships_in_question as $object_relationship) {
+      // Reference the underlying object that this relationship points to.
+      if (array_key_exists('object', $object_relationship) &&
+          array_key_exists('value', $object_relationship['object'])) {
+        $rel_obj_pid = $object_relationship['object']['value'];
+        $related_object = islandora_object_load($rel_obj_pid);
+        if (is_object($related_object)) {
+          $related_object_models = $related_object->models;
+          foreach ($related_object_models as $related_object_model) {
+            // Increment $matches if the model name matches the related
+            // object's model name.
+            if (strstr($related_object_model, 'fedora-system:') == '' &&
+                $related_object_model == $model_config['related_to_model']) {
+              $matches++;
+            }
+          }
+        }
+      }
+    }
+    if ($model_config['howmany'] == 1 && $matches > 1) {
+      // Can fail this here - config in this case wanted EXACTLY 1 relationship
+      // but more than 1 was found.
+      drupal_set_message(t('Object validation required a relationship to EXACTLY 1 ' .
+          '`@related_to_model` object but @matches were found!', array(
+              '@related_to_model' => $model_config['related_to_model'],
+              '@matches' => $matches,
+          )), 'error');
+      return FALSE;
+    }
+    elseif ($matches < 1) {
+      drupal_set_message(t('Object validation required a relationship to EXACTLY 1 ' .
+          '`@related_to_model` object but no matches were found!', array(
+              '@related_to_model' => $model_config['related_to_model'],
+          )), 'error');
+      return FALSE;
+    }
+    else {
+      return TRUE;
+    }
+  }
+  else {
+    return TRUE;
   }
 }
 

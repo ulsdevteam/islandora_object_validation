@@ -26,17 +26,35 @@ Installing this module will also set up the following:
 Configuration for the module can be found at Administration » Islandora » Islandora Object Validation (admin/islandora/tools/islandora_object_validation).  
 **Solr query limit** will limit the number of results that can come back from Solr queries behind the selection of objects for the "Validate objects" form.
 **CRON limit** will control how many objects are tested during each run of the CRON process to validate objects.  This may impact performance -- and it would be better to process fewer items more frequently than to process thousands on a daily basis.
-
 **Islandora model requirements table** for all object models, configure which datastreams are required for validation and optionally they may assert that objects of this type must have a given relationship to another object that is of a given type.
 
-## Usage
-The "Validate objects" form can be used to add objects to the validation queue.
+##### Configuring the CRON job
+Even though th validation queue can be processed in sets directly from the configuration page, it may also be configured process that same number of objects by a CRON job call to the drush function included in this module.  To add this process to the CRON on the web server via command prompt:
+```
+$ sudo crontab -u apache -e
+```
+Enter these lines into the web server's CRON (edit to reference your site's web address for the uri parameter and optionally editing and including the MAILTO email address):
+```
+# Drush process a chunk of objects in validation queue.
+# Optionally edit the following line to get an email digest of the validations that were processed.
+# MAILTO=your_email@your_institution.edu
+*/1 * * * *  /usr/local/bin/cronic /usr/bin/drush -u 1 islandora_object_validation_validate_chunk_of_objects --uri=http://digital.library.your_institution.edu --root=/var/www/html/drupal7/
+```
 
-#### "Validation History" table on Islandora Object | Manage page. 
-After installation, a "Validation History" tab should appear on any Islandora object's Manage page if the user has "Administer Islandora Object Validation" permission.
+## Usage
+The "Validate objects" form can be used to add objects to the validation queue.  When validation is required on a large group of objects, the module uses a "validation queue" to process these items in a background process - when configured by CRON.
+
+If you want to validate all of the objects in your repository, this form may be the easiest way to achieve this.  There are several approaches for getting objects into the validation queue.  
+* entering all of the object's PID values into the selection box
+* specifying one or more Solr queries
+* selecting objects by Collection
+* selecting objects by Model
 
 #### Reports
-The one report is almost the same as what appears on each objects' Validation History tab, but these forena reports can be used to export the results as CSV.
+The "Islandora Object Validation Report" and "Objects Queued for Validation" reports are handled using forena reports because the output can easily be exported as CSV.  To view the validation for any of the objects listed here, click the "Islandora PID" link to jump to the Validation History for that object (see next setion).
+
+#### "Validation History" table on Islandora Object | Manage page. 
+The "Validation History" tab should now appear on any Islandora object's Manage page if the user has "Administer Islandora Object Validation" permission.  From here, you can immediately perform a new validation test on any object.  Depending on the object state and the module configuration for that object's models, the record for the result of that test should appear in the table.
 
 ## Troubleshooting/Issues
 Having problems or solved a problem? Check out the Islandora google groups for a solution.
