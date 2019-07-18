@@ -63,7 +63,6 @@ function islandora_object_validation_menu() {
       'file' => 'includes/islandora_object_validation_history.form.inc',
       'access arguments' => array('administer islandora_object_validation'),
     ),
-
   );
   return $items;
 }
@@ -90,7 +89,8 @@ function islandora_object_validation_preprocess_page(&$vars) {
   $item = menu_get_item();
   if (is_array($item)) {
     if ($item['path'] == 'admin/islandora/tools/islandora_object_validation' ||
-      $item['path'] == 'admin/islandora/tools/islandora_object_validation/validate_objects') {
+      $item['path'] == 'admin/islandora/tools/islandora_object_validation/validate_objects' ||
+      $item['path'] == 'islandora/object/%islandora_object/manage/islandora_object_validation') {
       $module_path = drupal_get_path('module', 'islandora_object_validation');
       drupal_add_css($module_path . '/css/islandora_object_validation.css');
       drupal_add_js($module_path . '/js/islandora_object_validation.js');

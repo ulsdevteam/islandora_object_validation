@@ -128,7 +128,7 @@ function islandora_object_validation_get_history_records($pid) {
   foreach ($rows as $row) {
     $row->validation_result = ($row->validation_result) ? 'PASS' : '<a href="/islandora/object/' .
         $pid . '/manage/islandora_object_validation" title="Failed validation -- validate again"><span class="bad">FAIL</span></a>';
-    $row->relationship_requirement_result = ($row->relationship_requirement_result) ? 'PASS' : '<span class="bad">FAIL</span>';
+    $row->relationship_requirement_result = ($row->relationship_requirement_result) ? '<span class="good">PASS</span>' : '<span class="bad">FAIL</span>';
     $return_array[] = (array)$row;
   }
   return $return_array;
