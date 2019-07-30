@@ -75,6 +75,7 @@ function islandora_object_validation_admin_settings(array $form, array &$form_st
         '#type' => 'submit',
         '#value' => t('Save Configuration'),
         '#weight' => 2,
+        '#submit' => array('islandora_object_validation_admin_settings_submit'),
         '#suffix' => '<br><br>' . l(t('Validate Objects'),
           'admin/islandora/tools/islandora_object_validation/validate_objects') .
           ' <span>- validate specific objects now.</span>',
@@ -98,6 +99,7 @@ function islandora_object_validation_admin_settings(array $form, array &$form_st
         '#type' => 'submit',
         '#value' => t('Save Configuration'),
         '#weight' => 2,
+        '#submit' => array('islandora_object_validation_admin_settings_submit'),
       ),
     ),
     'content_model_wrapper' => array(
@@ -119,6 +121,7 @@ function islandora_object_validation_admin_settings(array $form, array &$form_st
         '#type' => 'submit',
         '#value' => t('Save Configuration'),
         '#prefix' => $validations_table,
+        '#submit' => array('islandora_object_validation_admin_settings_submit'),
         '#weight' => 10,
       ),
     ),

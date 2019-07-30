@@ -38,7 +38,7 @@ Enter these lines into the web server's CRON (edit to reference your site's web 
 # Drush process a chunk of objects in validation queue.
 # Optionally edit the following line to get an email digest of the validations that were processed.
 # MAILTO=your_email@your_institution.edu
-*/1 * * * *  /usr/local/bin/cronic /usr/bin/drush -u 1 islandora_object_validation_validate_chunk_of_objects --uri=http://digital.library.your_institution.edu --root=/var/www/html/drupal7/
+*/1 * * * *  /usr/bin/drush -u 1 islandora_object_validation_validate_chunk_of_objects --uri=http://digital.library.your_institution.edu --root=/var/www/html/drupal7/
 ```
 
 ## Usage

@@ -104,14 +104,14 @@ function islandora_object_validation_validate_objects(array $form, array &$form_
         '#type' => 'textarea',
         '#title' => t('Solr query'),
         '#default_value' => (isset($form_state['input']['solr_query']) ? $form_state['input']['solr_query'] : $default_pids_value),
-        '#description' => 'Use the query "q" section of any Solr query - ' .
+        '#description' => t('Use the query "q" section of any Solr query - ') .
           l(variable_get('islandora_solr_url', 'localhost:8080/solr'), variable_get('islandora_solr_url', 'localhost:8080/solr')) .
-          ' do not try to use filter queries "fq" or field lists "fl" or any special Solr options for this query.',
+          t(' do not try to use filter queries "fq" or field lists "fl" or any special Solr options for this query.'),
         '#group' => 'validation_form',
       ),
       'collection' => array(
         '#type' => 'select',
-        '#description' => 'Select collection',
+        '#description' => t('Select collection'),
         '#title' => t('Collection'),
         '#options' => $collections,
         '#default_value' => (isset($form_state['input']['collection']) ? $form_state['input']['collection'] : $default_pids_value),
@@ -120,7 +120,7 @@ function islandora_object_validation_validate_objects(array $form, array &$form_
       ),
       'model' => array(
         '#type' => 'select',
-        '#description' => 'Select model',
+        '#description' => t('Select model'),
         '#title' => t('Model'),
         '#options' => $model_options,
         '#default_value' => (isset($form_state['input']['model']) ? $form_state['input']['model'] : $default_pids_value),
@@ -171,7 +171,7 @@ function islandora_object_validation_validate_objects_submit($form, &$form_state
     // 0 - Solr query
     case ISLANDORA_OBJECT_VALIDATION_FETCH_SOLR:
       $solr_query = $form_state['values']['solr_query'];
-      drupal_set_message('Lookup PIDS for Solr query: "' . $solr_query . '"');
+      drupal_set_message(t('Lookup PIDS for Solr query: "') . $solr_query . '"');
       $pids = islandora_object_validation_get_pids_solr_query($solr_query, $limit);
       break;
 
@@ -183,14 +183,14 @@ function islandora_object_validation_validate_objects_submit($form, &$form_state
     // 2 - Collection
     case ISLANDORA_OBJECT_VALIDATION_FETCH_COLLECTION:
       $collection = $form_state['values']['collection'];
-      drupal_set_message('Lookup PIDS for Collection: "' . $collection . '"');
+      drupal_set_message(t('Lookup PIDS for Collection: "') . $collection . '"');
       $pids = islandora_object_validation_get_pids_collection($collection, $limit);
       break;
 
     // 3 - Model
     case ISLANDORA_OBJECT_VALIDATION_FETCH_MODEL:
       $model = $form_state['values']['model'];
-      drupal_set_message('Lookup PIDS for fedora Model: "' . $model . '"');
+      drupal_set_message(t('Lookup PIDS for fedora Model: "') . $model . '"');
       $pids = islandora_object_validation_get_pids_model($model, $limit);
       break;
   }
@@ -214,10 +214,10 @@ function islandora_object_validation_validate_objects_submit($form, &$form_state
       }
     }
     if (count($skipped) > 0) {
-      drupal_set_message('At least one of datastream for the objects could not be updated.  These are: \'' . implode("', '", $relationship_skipped) . '\'', 'info');
+      drupal_set_message(t('At least one of datastream for the objects could not be updated.  These are: \'') . implode("', '", $relationship_skipped) . '\'', 'info');
     }
     if (count($bad_pids) > 0) {
-      drupal_set_message('At least one of the PID values were not able to be loaded as an object.  These are: \'' . implode("', '", $bad_pids) . '\'', 'warning');
+      drupal_set_message(t('At least one of the PID values were not able to be loaded as an object.  These are: \'') . implode("', '", $bad_pids) . '\'', 'warning');
     }
     drupal_set_message(number_format($added_count) . t(' objects have been added to the validation queue.'));
   }

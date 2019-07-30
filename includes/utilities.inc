@@ -19,7 +19,7 @@
 function islandora_object_validation_check_and_deploy_forena_reports() {
   if (!module_exists('forena')) {
     $link_att = array('attributes'=>array(
-      'title' => 'link opens in separate tab',
+      'title' => t('link opens in separate tab'),
       'class' => array('link_open_new_tab_tiny'),
       'target' => '_blank'));
     drupal_set_message(t('The Forena reporting module is not installed.  ') .
@@ -494,6 +494,18 @@ function islandora_object_validation_get_select_box($model_relationships, $which
   return $return_markup;
 }
 
+function islandora_object_validation_get_name_of_model_pid($all_cmodels, $object_model) {
+  $model_match = '';
+  foreach ($all_cmodels as $pid_label_arr) {
+    if (!$model_match) {
+      if (array_key_exists('label', $pid_label_arr) && array_key_exists('pid', $pid_label_arr) && $pid_label_arr['pid'] == $object_model) {
+        $model_match = $pid_label_arr['label'];
+      }
+    }
+  }
+  return $model_match;
+}
+
 function islandora_object_validation_get_validations_table($cmodels) {
   $dsids = array();
   $reqs = array();
@@ -516,6 +528,7 @@ function islandora_object_validation_get_validations_table($cmodels) {
   }
   ksort($dsids);
   $rows = array();
+  $dsid_models = array();
   foreach($cmodels as $key => $pid_label) {
     $pid = $pid_label['pid'];
     $name = $pid_label['label'];
@@ -538,6 +551,9 @@ function islandora_object_validation_get_validations_table($cmodels) {
       $cbx_val = array_key_exists($cbx_name, $already_chosen) ? ' checked' : '';
       $optional = (array_key_exists('optional', $req) && array_key_exists($dsid, $req['optional']));
       $req_class = (array_key_exists('required', $req) && array_key_exists($dsid, $req['required'])) ? ' required' : '';
+      if ($req_class) {
+        $dsid_models[$dsid][$pid] = $name;
+      }
       $cell_title = $name . ' &rarr; ' . $dsid . " " . ($optional ? 'optional' : ($req_class ? 'required' : 'N/A'));
       $checkbox = (($req_class ||
           $optional)  ?
@@ -556,7 +572,20 @@ function islandora_object_validation_get_validations_table($cmodels) {
     $rows[] = $row;
   }
   $headers = array_keys(array_merge(array('Model' => 'Model'), $dsids));
-  return theme('table', array('header' => $headers, 'rows' => $rows));
+  $table_markup = theme('table', array('header' => $headers, 'rows' => $rows));
+  // add which models require usage of each datastream - based only on the
+  // islandora_get_datastreams_requirements_from_content_model core function.
+  // We shouldn't need to perform string replacements on a chunk of HTML, but
+  // there doesn't seem to be a way to populate the table heading cells'
+  // title attributes -- I searched for 30 minutes but give up.
+  foreach ($dsids as $dsid) {
+    if (array_key_exists($dsid, $dsid_models) && is_array($dsid_models[$dsid]) && count($dsid_models[$dsid]) > 0) {
+      $search = '>' . $dsid . '</th>';
+      $replace = '><span title="' . htmlentities(t('Required by "') . implode('", "', $dsid_models[$dsid]) . '"') . '">' . $dsid . '</span></th>';
+      $table_markup = str_replace($search, $replace, $table_markup);
+    }
+  }
+  return $table_markup;
 }
 
 

@@ -21,13 +21,41 @@
 function islandora_object_validation_object_add_record($object, $check_datastreams, $missing_datastreams, $relationship_requirement_result) {
   $validation_result = (count($missing_datastreams) > 0 || !$relationship_requirement_result) ? 0 : 1;
   // Convert these variables to a string for database storage.
-  $check_datastreams = implode(",", $check_datastreams);
-  $missing_datastreams = implode(",", $missing_datastreams);
+  $check_datastreams_str = implode(",", array_keys($check_datastreams));
+  $missing_datastreams_str = implode(",", $missing_datastreams);
+  if ($check_datastreams_str == '' && $missing_datastreams_str == '') {
+    $models = array();
+
+    module_load_include('inc', 'islandora_object_validation', 'includes/utilities');
+    module_load_include('inc', 'islandora_object_validation', 'includes/db');
+    module_load_include('inc', 'islandora', 'includes/utilities');
+
+    $object_models = $object->models;
+    $validation_datastreams = variable_get('islandora_object_validation_selected_cmodels', array());
+    $all_cmodels = islandora_get_content_models();
+    $model_names = array();
+    foreach ($object_models as $object_model) {
+      $lc_name = str_replace("islandora:", "",  islandora_object_validation_normalize($object_model));
+      // We only want to validate the overridden islandora models.
+      if (strstr($object_model, 'fedora-system:') == '' && $lc_name) {
+        $checks_added = FALSE;
+        foreach ($validation_datastreams as $key => $validation_datastream) {
+          $first_n_chars = substr($key, 0, strlen($lc_name) + 1);
+          $checks_added |= ($first_n_chars == ($lc_name . '_'));
+        }
+        if (!$checks_added) {
+          $models[$object_model] = $object_model;
+          $model_names[$object_model] = islandora_object_validation_get_name_of_model_pid($all_cmodels, $object_model);
+        }
+      }
+    }
+    $check_datastreams_str = '[no datastreams configured for validation for ' . implode(",", $model_names) . ']';
+  }
   $fields = array(
       'islandora_pid' => $object->id,
       'validation_result' => $validation_result,
-      'check_datastreams' => $check_datastreams,
-      'missing_datastreams' => $missing_datastreams,
+      'check_datastreams' => $check_datastreams_str,
+      'missing_datastreams' => $missing_datastreams_str,
       'relationship_requirement_result' => $relationship_requirement_result,
       'validation_time' => date("Y-m-d H:i:s", time()),
   );
